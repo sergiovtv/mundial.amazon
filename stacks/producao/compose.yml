@@ -10,6 +10,7 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+      MEDIA_BASE_URL: /fotos
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: imobi
@@ -17,6 +18,8 @@ services:
       DB_PASSWORD: ${MUNDIAL_APP_PASSWORD}
     ports:
       - "80:80"
+    volumes:
+      - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
     networks:
       - mundial_backend
     healthcheck:

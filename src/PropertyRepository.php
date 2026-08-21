@@ -74,6 +74,7 @@ final class PropertyRepository
         $sql = "
             SELECT DISTINCT ON (i.codimovel)
                 i.codimovel,
+                i.codedificio,
                 t.desctipoimovel AS tipo,
                 b.descbairro AS bairro,
                 c.desccidade AS cidade,
@@ -90,7 +91,15 @@ final class PropertyRepository
                       AND f.situacao_cadastro = 'A'
                     ORDER BY f.ordemexibicao NULLS LAST, f.codfotoimovel
                     LIMIT 1
-                ) AS foto
+                ) AS foto_imovel,
+                (
+                    SELECT f.nome_imagem
+                    FROM fotoedificio f
+                    WHERE f.codedificio = i.codedificio
+                      AND f.situacao_cadastro = 'A'
+                    ORDER BY f.ordemexibicao NULLS LAST, f.codfotoedificio
+                    LIMIT 1
+                ) AS foto_edificio
             {$fromSql}
             WHERE {$whereSql}
             ORDER BY i.codimovel, i.dataalteracao DESC NULLS LAST

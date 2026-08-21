@@ -34,6 +34,31 @@ function queryForPage(int $page): string
     $query['pagina'] = $page;
     return '?' . http_build_query($query);
 }
+
+function propertyPhotoUrl(array $property): ?string
+{
+    $baseUrl = rtrim(env('MEDIA_BASE_URL', '/fotos'), '/');
+
+    if (!empty($property['foto_imovel'])) {
+        return sprintf(
+            '%s/%d/%s',
+            $baseUrl,
+            (int) $property['codimovel'],
+            rawurlencode((string) $property['foto_imovel'])
+        );
+    }
+
+    if (!empty($property['codedificio']) && !empty($property['foto_edificio'])) {
+        return sprintf(
+            '%s/Edificios/%d/%s',
+            $baseUrl,
+            (int) $property['codedificio'],
+            rawurlencode((string) $property['foto_edificio'])
+        );
+    }
+
+    return null;
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -46,7 +71,7 @@ function queryForPage(int $page): string
 <body>
 <header class="site-header">
     <a class="brand" href="/">Mundial <span>Imóveis</span></a>
-    <span class="environment">Ambiente local</span>
+    <span class="environment">Ambiente <?= e(env('APP_ENV', 'local')) ?></span>
 </header>
 
 <main>
@@ -121,9 +146,19 @@ function queryForPage(int $page): string
 
         <div class="property-grid">
             <?php foreach ($result['items'] as $property): ?>
+                <?php $photoUrl = propertyPhotoUrl($property); ?>
                 <article class="property-card">
                     <div class="property-image">
-                        <span>Foto em migração</span>
+                        <span>Imóvel sem foto</span>
+                        <?php if ($photoUrl !== null): ?>
+                            <img
+                                src="<?= e($photoUrl) ?>"
+                                alt="<?= e($property['tipo'] . ' em ' . $property['bairro']) ?>"
+                                loading="lazy"
+                                decoding="async"
+                                onerror="this.style.display='none'"
+                            >
+                        <?php endif; ?>
                         <small>Ref. <?= e($property['codimovel']) ?></small>
                     </div>
                     <div class="property-body">
