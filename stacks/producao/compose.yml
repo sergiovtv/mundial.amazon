@@ -11,6 +11,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       MEDIA_BASE_URL: /fotos
+      WHATSAPP_PHONE: ${WHATSAPP_PHONE:-5516997607200}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: imobi

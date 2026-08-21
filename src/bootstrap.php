@@ -30,3 +30,9 @@ function money(float|int|string|null $value): string
     $number = (float) $value;
     return $number > 0 ? 'R$ ' . number_format($number, 2, ',', '.') : 'Consulte';
 }
+
+function whatsappUrl(string $message): string
+{
+    $phone = preg_replace('/\D+/', '', env('WHATSAPP_PHONE', '5516997607200'));
+    return 'https://wa.me/' . $phone . '?text=' . rawurlencode($message);
+}
