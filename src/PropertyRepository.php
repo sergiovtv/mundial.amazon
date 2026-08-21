@@ -49,6 +49,8 @@ final class PropertyRepository
         }
 
         $priceColumn = $operation === 4 ? 'i.valorlocacao' : 'i.valorvenda';
+        $where[] = "COALESCE({$priceColumn}, 0) > 0";
+
         foreach (['preco_min' => '>=', 'preco_max' => '<='] as $key => $operator) {
             $raw = str_replace(['.', ','], ['', '.'], (string) ($filters[$key] ?? ''));
             if ($raw !== '' && is_numeric($raw)) {
@@ -139,6 +141,108 @@ final class PropertyRepository
         $sql .= ' ORDER BY b.descbairro';
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
+        return $statement->fetchAll();
+    }
+
+    public function find(int $propertyId, string $purpose = 'venda'): ?array
+    {
+        $operation = $purpose === 'locacao' ? 4 : 5;
+        $sql = "
+            SELECT DISTINCT ON (i.codimovel)
+                i.codimovel,
+                i.codedificio,
+                t.desctipoimovel AS tipo,
+                b.descbairro AS bairro,
+                c.desccidade AS cidade,
+                i.valorvenda,
+                i.valorlocacao,
+                i.valorcondominio,
+                i.iptu,
+                i.dormitorios,
+                i.suite,
+                i.banheiros,
+                i.garagem,
+                i.garagemcoberta,
+                i.andar,
+                i.mobiliado,
+                i.elevador,
+                i.portaria24horas,
+                i.piscina,
+                i.churrasqueira,
+                i.quintal,
+                i.escritorio,
+                i.lavabo,
+                i.areaservico,
+                i.areaconstruida,
+                i.terrenototal,
+                i.infoarea,
+                i.infopredio,
+                i.pontoreferencia,
+                i.complemento,
+                i.observacao,
+                it.texto1,
+                it.texto2,
+                ed.descedificio AS edificio
+            FROM imovel i
+            JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+            JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
+            JOIN bairro b ON b.codbairro = i.codbairro
+            JOIN cidade c ON c.codcidade = b.codcidade
+            LEFT JOIN imoveltexto it ON it.codimovel = i.codimovel
+            LEFT JOIN edificio ed ON ed.codedificio = i.codedificio
+            WHERE i.codimovel = :property
+              AND i.exibesite = 'S'
+              AND oi.codoperacao = :operation
+              AND oi.datacancelamento IS NULL
+            ORDER BY i.codimovel, oi.datainicio DESC NULLS LAST
+        ";
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute(['property' => $propertyId, 'operation' => $operation]);
+        $property = $statement->fetch();
+
+        if (!$property) {
+            return null;
+        }
+
+        $photos = $this->photos($propertyId, $property['codedificio'] ? (int) $property['codedificio'] : null);
+        $property['photos'] = $photos;
+
+        $features = $this->pdo->prepare(
+            "SELECT DISTINCT item.descitem
+             FROM imoveldiferenciais d
+             JOIN item ON item.coditem = d.coditem
+             WHERE d.codimovel = :property
+               AND NULLIF(TRIM(item.descitem), '') IS NOT NULL
+             ORDER BY item.descitem"
+        );
+        $features->execute(['property' => $propertyId]);
+        $property['diferenciais'] = $features->fetchAll(PDO::FETCH_COLUMN);
+
+        return $property;
+    }
+
+    private function photos(int $propertyId, ?int $buildingId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT nome_imagem AS name, descricao, 'imovel' AS source
+             FROM fotoimovel
+             WHERE codimovel = :property AND situacao_cadastro = 'A'
+             ORDER BY ordemexibicao NULLS LAST, codfotoimovel"
+        );
+        $statement->execute(['property' => $propertyId]);
+        $photos = $statement->fetchAll();
+
+        if ($photos !== [] || $buildingId === null) {
+            return $photos;
+        }
+
+        $statement = $this->pdo->prepare(
+            "SELECT nome_imagem AS name, descricao, 'edificio' AS source
+             FROM fotoedificio
+             WHERE codedificio = :building AND situacao_cadastro = 'A'
+             ORDER BY ordemexibicao NULLS LAST, codfotoedificio"
+        );
+        $statement->execute(['building' => $buildingId]);
         return $statement->fetchAll();
     }
 }

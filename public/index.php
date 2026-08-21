@@ -148,6 +148,7 @@ function propertyPhotoUrl(array $property): ?string
             <?php foreach ($result['items'] as $property): ?>
                 <?php $photoUrl = propertyPhotoUrl($property); ?>
                 <article class="property-card">
+                    <a class="property-card-link" href="/imovel.php?id=<?= e($property['codimovel']) ?>&amp;finalidade=<?= e($filters['finalidade']) ?>" aria-label="Ver <?= e($property['tipo']) ?> em <?= e($property['bairro']) ?>">
                     <div class="property-image">
                         <span>Imóvel sem foto</span>
                         <?php if ($photoUrl !== null): ?>
@@ -172,6 +173,7 @@ function propertyPhotoUrl(array $property): ?string
                         </div>
                         <strong><?= money($property[$result['priceColumn']]) ?></strong>
                     </div>
+                    </a>
                 </article>
             <?php endforeach; ?>
         </div>
