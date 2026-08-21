@@ -25,7 +25,8 @@ for database in imobi cliente; do
     --dbname "$database" \
     --set app_user="$MUNDIAL_APP_USER" <<'SQL'
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-SELECT format('GRANT USAGE, CREATE ON SCHEMA public TO %I', :'app_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'app_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO %I', :'app_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO %I', :'app_user') \gexec
 SQL
 done
-

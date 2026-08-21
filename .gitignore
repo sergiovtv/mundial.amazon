@@ -2,9 +2,9 @@
 *.env
 !.env.example
 *.sql
+!scripts/postgres/*.sql
 *.sql.gz
 *.dump
 *.backup
 .database-backups/
 .deploy-backups/
-

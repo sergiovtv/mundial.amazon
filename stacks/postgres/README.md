@@ -10,6 +10,18 @@ O diretório persistente padrão é `/var/lib/mundial/postgres`. O script de ini
 
 Os limites iniciais são 3 GB de memória e 1,5 CPU. Para ajustá-los, altere `deploy.resources.limits` em `compose.yml` e recrie somente o serviço PostgreSQL em uma janela de manutenção aprovada.
 
+## Permissões após restaurar o banco
+
+Depois de importar um dump, aplique as permissões de dados ao usuário da aplicação:
+
+```bash
+docker exec -i postgres sh -lc \
+  'psql --username "$POSTGRES_USER" --dbname imobi --set app_user="$MUNDIAL_APP_USER"' \
+  < ../../scripts/postgres/grant-app-data-access.sql
+```
+
+O usuário poderá consultar e gravar dados, mas não alterar a estrutura do banco nem administrar usuários.
+
 Antes de iniciar:
 
 1. Crie a rede externa com `docker network create mundial_backend`.

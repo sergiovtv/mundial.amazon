@@ -296,7 +296,8 @@ final class PropertyRepository
                AND atendidofone1 = :phone
                AND atendidoemail = :email
                AND dataatendimento = CURRENT_DATE
-               AND (CURRENT_TIME - horaatendimento) < INTERVAL '5 minutes'
+               AND (LOCALTIMESTAMP - (dataatendimento + horaatendimento))
+                   BETWEEN INTERVAL '0 seconds' AND INTERVAL '5 minutes'
              ORDER BY codatendimento DESC
              LIMIT 1"
         );

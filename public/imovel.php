@@ -65,10 +65,15 @@ try {
                         $selectedPurpose === 'locacao' ? 'locação' : 'venda'
                     );
                 }
-                $repository->createInquiry($property, $selectedPurpose, $form);
-                $_SESSION['contact_csrf'] = bin2hex(random_bytes(24));
-                header('Location: ' . propertyPath($property, $selectedPurpose) . '?contato=enviado#contato', true, 303);
-                exit;
+                try {
+                    $repository->createInquiry($property, $selectedPurpose, $form);
+                    $_SESSION['contact_csrf'] = bin2hex(random_bytes(24));
+                    header('Location: ' . propertyPath($property, $selectedPurpose) . '?contato=enviado#contato', true, 303);
+                    exit;
+                } catch (Throwable $inquiryException) {
+                    error_log(sprintf('Falha ao cadastrar atendimento do imóvel %d: %s', $propertyId, $inquiryException->getMessage()));
+                    $formErrors[] = 'Não foi possível enviar sua mensagem agora. Tente novamente em alguns instantes.';
+                }
             }
         } elseif ($selectedPurpose !== '') {
             $form['message'] = sprintf(
