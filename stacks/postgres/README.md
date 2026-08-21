@@ -1,6 +1,8 @@
 # PostgreSQL da Mundial
 
-Esta stack executa PostgreSQL 16 sem publicar a porta 5432 no host. A aplicação acessa o banco exclusivamente pela rede Docker externa `mundial_backend`, usando o hostname `postgres`.
+Esta stack executa PostgreSQL 16 e, por padrão, publica a porta 5432 somente em `127.0.0.1`. A aplicação acessa o banco pela rede Docker externa `mundial_backend`, usando o hostname `postgres`.
+
+Enquanto houver integração legada sem suporte a túnel SSH, `POSTGRES_PUBLISH_ADDRESS=0.0.0.0` pode ser usado no servidor somente quando o firewall externo limitar a porta 5432 a um IPv4 `/32` conhecido. Remova essa exceção assim que a integração aceitar SSH ou VPN.
 
 Na primeira inicialização, são criadas as bases `imobi` e `cliente`, ambas pertencentes ao usuário de aplicação. O usuário administrativo deve ser reservado para manutenção e restauração.
 

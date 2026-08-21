@@ -17,6 +17,8 @@ services:
       PGTZ: ${TZ:-America/Sao_Paulo}
     volumes:
       - ${POSTGRES_DATA_DIR:-/var/lib/mundial/postgres}:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PUBLISH_ADDRESS:-127.0.0.1}:5432:5432"
     networks:
       - mundial_backend
     healthcheck:
@@ -37,4 +39,3 @@ services:
 networks:
   mundial_backend:
     external: true
-
