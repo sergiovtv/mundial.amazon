@@ -27,6 +27,20 @@ final class PropertyRepository
         ];
     }
 
+    public function siteParameter(string $description): string
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT valorparametrosite
+             FROM parametrosite
+             WHERE descparametrosite = :description
+             ORDER BY codparametrosite
+             LIMIT 1'
+        );
+        $statement->execute(['description' => $description]);
+
+        return trim((string) ($statement->fetchColumn() ?: ''));
+    }
+
     public function search(array $filters, int $page = 1, int $perPage = 12): array
     {
         $where = ["i.exibesite = 'S'", 'oi.datacancelamento IS NULL'];
