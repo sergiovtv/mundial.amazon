@@ -4,11 +4,22 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
+session_start();
+
 $propertyId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-$purpose = ($_GET['finalidade'] ?? 'venda') === 'locacao' ? 'locacao' : 'venda';
+$purposeParam = (string) ($_GET['finalidade'] ?? '');
+$purpose = in_array($purposeParam, ['locacao', 'alugar'], true) ? 'locacao' : (in_array($purposeParam, ['venda', 'comprar'], true) ? 'venda' : '');
+$selectedPurpose = $purpose;
 $property = null;
 $error = null;
 $whatsappPhone = '';
+$formErrors = [];
+$form = ['name' => '', 'phone' => '', 'email' => '', 'message' => ''];
+$sent = isset($_GET['contato']) && $_GET['contato'] === 'enviado';
+
+if (empty($_SESSION['contact_csrf'])) {
+    $_SESSION['contact_csrf'] = bin2hex(random_bytes(24));
+}
 
 try {
     $repository = new PropertyRepository(Database::connect());
@@ -17,8 +28,54 @@ try {
         http_response_code(404);
     } else {
         $property = $repository->find($propertyId, $purpose);
+        if ($property !== null && $purpose === '' && count($property['purposes']) === 1) {
+            $selectedPurpose = $property['purposes'][0];
+        }
         if ($property === null) {
             http_response_code(404);
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['contato'])) {
+            $canonicalPath = propertyPath($property, $purpose);
+            $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+            if ($requestPath !== $canonicalPath) {
+                header('Location: ' . $canonicalPath, true, 301);
+                exit;
+            }
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $selectedPurpose = (string) ($_POST['purpose'] ?? $purpose);
+            $form = [
+                'name' => trim((string) ($_POST['name'] ?? '')),
+                'phone' => trim((string) ($_POST['phone'] ?? '')),
+                'email' => trim((string) ($_POST['email'] ?? '')),
+                'message' => trim((string) ($_POST['message'] ?? '')),
+            ];
+
+            if (!hash_equals($_SESSION['contact_csrf'], (string) ($_POST['csrf'] ?? ''))) $formErrors[] = 'Sessão expirada. Atualize a página e tente novamente.';
+            if ((string) ($_POST['website'] ?? '') !== '') $formErrors[] = 'Não foi possível enviar o formulário.';
+            if (!in_array($selectedPurpose, $property['purposes'], true)) $formErrors[] = 'Escolha se deseja comprar ou alugar o imóvel.';
+            if (mb_strlen($form['name']) < 2 || mb_strlen($form['name']) > 50) $formErrors[] = 'Informe seu nome.';
+            if (strlen(preg_replace('/\D/', '', $form['phone'])) < 10 || mb_strlen($form['phone']) > 20) $formErrors[] = 'Informe um telefone válido com DDD.';
+            if (!filter_var($form['email'], FILTER_VALIDATE_EMAIL) || mb_strlen($form['email']) > 50) $formErrors[] = 'Informe um e-mail válido.';
+            if (mb_strlen($form['message']) > 1000) $formErrors[] = 'A mensagem deve ter no máximo 1.000 caracteres.';
+
+            if ($formErrors === []) {
+                if ($form['message'] === '') {
+                    $form['message'] = sprintf(
+                        'Olá, tenho interesse no imóvel ref. %d anunciado para %s e gostaria de receber mais informações.',
+                        $propertyId,
+                        $selectedPurpose === 'locacao' ? 'locação' : 'venda'
+                    );
+                }
+                $repository->createInquiry($property, $selectedPurpose, $form);
+                $_SESSION['contact_csrf'] = bin2hex(random_bytes(24));
+                header('Location: ' . propertyPath($property, $selectedPurpose) . '?contato=enviado#contato', true, 303);
+                exit;
+            }
+        } elseif ($selectedPurpose !== '') {
+            $form['message'] = sprintf(
+                'Olá, tenho interesse no imóvel ref. %d anunciado para %s e gostaria de receber mais informações.',
+                $propertyId,
+                $selectedPurpose === 'locacao' ? 'locação' : 'venda'
+            );
         }
     }
 } catch (Throwable $exception) {
@@ -42,6 +99,14 @@ function yes(mixed $value): bool
 
 $priceColumn = $purpose === 'locacao' ? 'valorlocacao' : 'valorvenda';
 $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'], $property['texto2']]))) : '';
+$canonicalUrl = $property ? siteUrl(propertyPath($property, $purpose)) : siteUrl('/imovel');
+$metaDescription = $property
+    ? sprintf('%s %s em %s, %s. Referência %d.', $property['tipo'], $purpose === '' ? 'para venda ou locação' : ($purpose === 'locacao' ? 'para alugar' : 'para comprar'), $property['bairro'], $property['cidade'], $property['codimovel'])
+    : 'Consulte os imóveis disponíveis na Mundial Imóveis.';
+$socialImage = $property && $property['photos'] ? detailPhotoUrl($property, $property['photos'][0]) : null;
+if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
+    $socialImage = siteUrl($socialImage);
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -49,6 +114,16 @@ $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $property ? e($property['tipo'] . ' em ' . $property['bairro']) : 'Imóvel não encontrado' ?> | Mundial Imóveis</title>
+    <meta name="description" content="<?= e($metaDescription) ?>">
+    <link rel="canonical" href="<?= e($canonicalUrl) ?>">
+    <?php if (!$property): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
+    <?php if ($property): ?>
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?= e($property['tipo'] . ' em ' . $property['bairro']) ?> | Mundial Imóveis">
+    <meta property="og:description" content="<?= e($metaDescription) ?>">
+    <meta property="og:url" content="<?= e($canonicalUrl) ?>">
+    <?php if ($socialImage): ?><meta property="og:image" content="<?= e($socialImage) ?>"><?php endif; ?>
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
@@ -70,11 +145,14 @@ $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'
 <?php else: ?>
     <section class="detail-heading">
         <div>
-            <p class="eyebrow"><?= e($purpose === 'locacao' ? 'Para alugar' : 'Para comprar') ?> · Ref. <?= e($property['codimovel']) ?></p>
+            <p class="eyebrow"><?php if ($purpose === 'locacao'): ?>Para alugar<?php elseif ($purpose === 'venda'): ?>Para comprar<?php else: ?><?= count($property['purposes']) > 1 ? 'Venda e locação' : ($property['purposes'][0] === 'locacao' ? 'Para alugar' : 'Para comprar') ?><?php endif; ?> · Ref. <?= e($property['codimovel']) ?></p>
             <h1><?= e($property['tipo']) ?> em <?= e($property['bairro']) ?></h1>
             <p><?= e($property['cidade']) ?><?= $property['edificio'] ? ' · ' . e($property['edificio']) : '' ?></p>
         </div>
-        <strong class="detail-price"><?= money($property[$priceColumn]) ?></strong>
+        <div class="detail-prices">
+            <?php if (($purpose === '' || $purpose === 'venda') && in_array('venda', $property['purposes'], true)): ?><div><span>Venda</span><strong><?= money($property['valorvenda']) ?></strong></div><?php endif; ?>
+            <?php if (($purpose === '' || $purpose === 'locacao') && in_array('locacao', $property['purposes'], true)): ?><div><span>Locação</span><strong><?= money($property['valorlocacao']) ?><small>/mês</small></strong></div><?php endif; ?>
+        </div>
     </section>
 
     <?php if ($property['photos']): ?>
@@ -151,12 +229,37 @@ $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'
             <section class="detail-section"><h2>Localização</h2><p><?= e($property['bairro']) ?>, <?= e($property['cidade']) ?>. O endereço completo é informado durante o atendimento.</p></section>
         </div>
 
-        <aside class="contact-card">
+        <aside class="contact-card" id="contato">
             <p class="eyebrow">Gostou deste imóvel?</p>
             <h2>Fale com a Mundial</h2>
-            <p>Informe a referência <strong><?= e($property['codimovel']) ?></strong> e receba mais detalhes ou agende uma visita.</p>
-            <?php $phone = env('CONTACT_PHONE', ''); ?>
-            <?php if ($phone !== ''): ?><a class="button-link" href="tel:<?= e(preg_replace('/[^0-9+]/', '', $phone)) ?>">Ligar para <?= e($phone) ?></a><?php endif; ?>
+            <p>Envie seus dados para receber mais informações ou agendar uma visita. Ref. <strong><?= e($property['codimovel']) ?></strong>.</p>
+
+            <?php if ($sent): ?>
+                <div class="form-success" role="status"><strong>Mensagem enviada!</strong><br>Nossa equipe entrará em contato.</div>
+            <?php endif; ?>
+            <?php if ($formErrors): ?>
+                <div class="form-errors" role="alert"><?php foreach ($formErrors as $formError): ?><span><?= e($formError) ?></span><?php endforeach; ?></div>
+            <?php endif; ?>
+
+            <form class="contact-form" method="post" action="<?= e(propertyPath($property, $purpose)) ?>#contato">
+                <input type="hidden" name="csrf" value="<?= e($_SESSION['contact_csrf']) ?>">
+                <label class="honey-field" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+                <?php if (count($property['purposes']) > 1): ?>
+                    <fieldset class="purpose-choice">
+                        <legend>Tenho interesse em</legend>
+                        <label><input type="radio" name="purpose" value="venda" <?= $selectedPurpose === 'venda' ? 'checked' : '' ?> required> Comprar</label>
+                        <label><input type="radio" name="purpose" value="locacao" <?= $selectedPurpose === 'locacao' ? 'checked' : '' ?> required> Alugar</label>
+                    </fieldset>
+                <?php else: ?>
+                    <input type="hidden" name="purpose" value="<?= e($property['purposes'][0]) ?>">
+                <?php endif; ?>
+                <label>Nome<input name="name" maxlength="50" autocomplete="name" value="<?= e($form['name']) ?>" required></label>
+                <label>Telefone<input name="phone" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="(16) 99999-9999" value="<?= e($form['phone']) ?>" required></label>
+                <label>E-mail<input name="email" type="email" maxlength="50" autocomplete="email" value="<?= e($form['email']) ?>" required></label>
+                <label>Mensagem<textarea name="message" maxlength="1000" rows="4" data-contact-message><?= e($form['message']) ?></textarea></label>
+                <button type="submit">Enviar mensagem</button>
+            </form>
+
             <a class="secondary-link" href="/">Continuar buscando</a>
         </aside>
     </div>
@@ -210,6 +313,21 @@ $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'
         const distance = event.changedTouches[0].clientX - touchStart;
         if (Math.abs(distance) > 45) show(active + (distance < 0 ? 1 : -1));
     }, {passive: true});
+})();
+</script>
+<?php endif; ?>
+<?php if ($property && count($property['purposes']) > 1): ?>
+<script>
+(() => {
+    const message = document.querySelector('[data-contact-message]');
+    const choices = document.querySelectorAll('input[name="purpose"]');
+    const templates = {
+        venda: <?= json_encode(sprintf('Olá, tenho interesse no imóvel ref. %d anunciado para venda e gostaria de receber mais informações.', $propertyId), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+        locacao: <?= json_encode(sprintf('Olá, tenho interesse no imóvel ref. %d anunciado para locação e gostaria de receber mais informações.', $propertyId), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+    };
+    choices.forEach(choice => choice.addEventListener('change', () => {
+        if (choice.checked) message.value = templates[choice.value];
+    }));
 })();
 </script>
 <?php endif; ?>

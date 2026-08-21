@@ -11,6 +11,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       MEDIA_BASE_URL: /fotos
+      APP_URL: ${APP_URL:-https://mundialimoveis.com.br}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: imobi

@@ -158,9 +158,10 @@ final class PropertyRepository
         return $statement->fetchAll();
     }
 
-    public function find(int $propertyId, string $purpose = 'venda'): ?array
+    public function find(int $propertyId, string $purpose = ''): ?array
     {
-        $operation = $purpose === 'locacao' ? 4 : 5;
+        $operation = $purpose === 'locacao' ? 4 : ($purpose === 'venda' ? 5 : null);
+        $operationWhere = $operation === null ? 'oi.codoperacao IN (4, 5)' : 'oi.codoperacao = :operation';
         $sql = "
             SELECT DISTINCT ON (i.codimovel)
                 i.codimovel,
@@ -194,6 +195,7 @@ final class PropertyRepository
                 i.pontoreferencia,
                 i.complemento,
                 i.observacao,
+                oi.codempresa,
                 it.texto1,
                 it.texto2,
                 ed.descedificio AS edificio
@@ -206,17 +208,33 @@ final class PropertyRepository
             LEFT JOIN edificio ed ON ed.codedificio = i.codedificio
             WHERE i.codimovel = :property
               AND i.exibesite = 'S'
-              AND oi.codoperacao = :operation
+              AND {$operationWhere}
               AND oi.datacancelamento IS NULL
             ORDER BY i.codimovel, oi.datainicio DESC NULLS LAST
         ";
         $statement = $this->pdo->prepare($sql);
-        $statement->execute(['property' => $propertyId, 'operation' => $operation]);
+        $params = ['property' => $propertyId];
+        if ($operation !== null) $params['operation'] = $operation;
+        $statement->execute($params);
         $property = $statement->fetch();
 
         if (!$property) {
             return null;
         }
+
+        $operations = $this->pdo->prepare(
+            "SELECT DISTINCT codoperacao
+             FROM operacaoimovel
+             WHERE codimovel = :property
+               AND codoperacao IN (4, 5)
+               AND datacancelamento IS NULL
+             ORDER BY codoperacao"
+        );
+        $operations->execute(['property' => $propertyId]);
+        $property['purposes'] = array_map(
+            static fn ($code) => (int) $code === 4 ? 'locacao' : 'venda',
+            $operations->fetchAll(PDO::FETCH_COLUMN)
+        );
 
         $photos = $this->photos($propertyId, $property['codedificio'] ? (int) $property['codedificio'] : null);
         $property['photos'] = $photos;
@@ -233,6 +251,89 @@ final class PropertyRepository
         $property['diferenciais'] = $features->fetchAll(PDO::FETCH_COLUMN);
 
         return $property;
+    }
+
+    public function sitemapProperties(): array
+    {
+        return $this->pdo->query(
+            "SELECT DISTINCT
+                i.codimovel,
+                t.desctipoimovel AS tipo,
+                b.descbairro AS bairro,
+                c.desccidade AS cidade,
+                CASE oi.codoperacao WHEN 4 THEN 'locacao' ELSE 'venda' END AS finalidade,
+                i.dataalteracao AS alterado_em
+             FROM imovel i
+             JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+             JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
+             JOIN bairro b ON b.codbairro = i.codbairro
+             JOIN cidade c ON c.codcidade = b.codcidade
+             WHERE i.exibesite = 'S'
+               AND oi.codoperacao IN (4, 5)
+               AND oi.datacancelamento IS NULL
+               AND CASE oi.codoperacao
+                   WHEN 4 THEN COALESCE(i.valorlocacao, 0)
+                   ELSE COALESCE(i.valorvenda, 0)
+               END > 0
+             ORDER BY i.codimovel"
+        )->fetchAll();
+    }
+
+    public function createInquiry(array $property, string $purpose, array $data): int
+    {
+        $operation = $purpose === 'locacao' ? 4 : 5;
+        $companyQuery = $this->pdo->prepare(
+            "SELECT codempresa FROM operacaoimovel
+             WHERE codimovel = :property AND codoperacao = :operation AND datacancelamento IS NULL
+             ORDER BY datainicio DESC NULLS LAST LIMIT 1"
+        );
+        $companyQuery->execute(['property' => (int) $property['codimovel'], 'operation' => $operation]);
+        $company = $companyQuery->fetchColumn();
+        $duplicate = $this->pdo->prepare(
+            "SELECT codatendimento
+             FROM atendimento
+             WHERE codimovel = :property
+               AND atendidofone1 = :phone
+               AND atendidoemail = :email
+               AND dataatendimento = CURRENT_DATE
+               AND (CURRENT_TIME - horaatendimento) < INTERVAL '5 minutes'
+             ORDER BY codatendimento DESC
+             LIMIT 1"
+        );
+        $duplicate->execute([
+            'property' => (int) $property['codimovel'],
+            'phone' => $data['phone'],
+            'email' => $data['email'],
+        ]);
+        $existing = $duplicate->fetchColumn();
+        if ($existing !== false) {
+            return (int) $existing;
+        }
+
+        $statement = $this->pdo->prepare(
+            "INSERT INTO atendimento (
+                dataatendimento, horaatendimento, atendidonome, atendidofone1,
+                atendidoemail, observacao, codoperacao, codimovel, codedificio,
+                codempresa, atendimentogenerico
+             ) VALUES (
+                CURRENT_DATE, CURRENT_TIME, :name, :phone,
+                :email, :message, :operation, :property, :building,
+                :company, 'N'
+             )
+             RETURNING codatendimento"
+        );
+        $statement->execute([
+            'name' => $data['name'],
+            'phone' => $data['phone'],
+            'email' => $data['email'],
+            'message' => $data['message'],
+            'operation' => $operation,
+            'property' => (int) $property['codimovel'],
+            'building' => $property['codedificio'] ?: null,
+            'company' => $company ?: (int) env('COMPANY_ID', '1'),
+        ]);
+
+        return (int) $statement->fetchColumn();
     }
 
     private function photos(int $propertyId, ?int $buildingId): array

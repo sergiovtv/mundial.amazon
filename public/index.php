@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 
 $filters = [
+    'codigo' => $_GET['codigo'] ?? '',
     'finalidade' => $_GET['finalidade'] ?? 'venda',
     'tipo' => $_GET['tipo'] ?? '',
     'cidade' => $_GET['cidade'] ?? '',
@@ -13,6 +14,11 @@ $filters = [
     'preco_min' => $_GET['preco_min'] ?? '',
     'preco_max' => $_GET['preco_max'] ?? '',
 ];
+
+if ($filters['codigo'] !== '' && ctype_digit((string) $filters['codigo']) && (int) $filters['codigo'] > 0) {
+    header('Location: /imovel.php?id=' . (int) $filters['codigo']);
+    exit;
+}
 $page = max(1, (int) ($_GET['pagina'] ?? 1));
 $error = null;
 $whatsappPhone = '';
@@ -36,6 +42,9 @@ function queryForPage(int $page): string
     $query['pagina'] = $page;
     return '?' . http_build_query($query);
 }
+
+$hasFilters = array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' ? $value !== '' : $value !== 'venda', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
+$canonicalUrl = siteUrl('/');
 
 function propertyPhotoUrl(array $property): ?string
 {
@@ -68,6 +77,9 @@ function propertyPhotoUrl(array $property): ?string
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Encontre seu imóvel | Mundial Imóveis</title>
+    <meta name="description" content="Imóveis à venda e para locação em Ribeirão Preto e região. Encontre casas, apartamentos e terrenos na Mundial Imóveis.">
+    <link rel="canonical" href="<?= e($canonicalUrl) ?>">
+    <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
@@ -85,6 +97,9 @@ function propertyPhotoUrl(array $property): ?string
         </div>
 
         <form class="search-panel" method="get">
+            <label>Código do imóvel
+                <input name="codigo" inputmode="numeric" pattern="[0-9]*" value="<?= e($filters['codigo']) ?>" placeholder="Ex.: 62602">
+            </label>
             <label>Finalidade
                 <select name="finalidade">
                     <option value="venda" <?= $filters['finalidade'] === 'venda' ? 'selected' : '' ?>>Comprar</option>
@@ -150,7 +165,7 @@ function propertyPhotoUrl(array $property): ?string
             <?php foreach ($result['items'] as $property): ?>
                 <?php $photoUrl = propertyPhotoUrl($property); ?>
                 <article class="property-card">
-                    <a class="property-card-link" href="/imovel.php?id=<?= e($property['codimovel']) ?>&amp;finalidade=<?= e($filters['finalidade']) ?>" aria-label="Ver <?= e($property['tipo']) ?> em <?= e($property['bairro']) ?>">
+                    <a class="property-card-link" href="<?= e(propertyPath($property, (string) $filters['finalidade'])) ?>" aria-label="Ver <?= e($property['tipo']) ?> em <?= e($property['bairro']) ?>">
                     <div class="property-image">
                         <span>Imóvel sem foto</span>
                         <?php if ($photoUrl !== null): ?>

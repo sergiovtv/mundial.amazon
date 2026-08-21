@@ -10,5 +10,9 @@ GRANT USAGE ON SCHEMA public TO mundial_dev_ro;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO mundial_dev_ro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO mundial_dev_ro;
 
+-- A aplicação permanece somente-leitura, exceto pelo cadastro de contatos do site.
+GRANT INSERT ON TABLE atendimento TO mundial_dev_ro;
+GRANT USAGE, SELECT ON SEQUENCE gen_atendimento TO mundial_dev_ro;
+
 ALTER DEFAULT PRIVILEGES FOR ROLE mundial_app IN SCHEMA public
 GRANT SELECT ON TABLES TO mundial_dev_ro;

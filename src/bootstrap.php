@@ -36,3 +36,42 @@ function whatsappUrl(string $phone, string $message): string
     $digits = preg_replace('/\D+/', '', $phone);
     return 'https://wa.me/' . $digits . '?text=' . rawurlencode($message);
 }
+
+function slug(string|int|float|null $value): string
+{
+    $text = trim((string) $value);
+    if ($text === '') return 'imovel';
+
+    if (function_exists('transliterator_transliterate')) {
+        $text = transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $text);
+    } else {
+        $converted = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        $text = strtolower($converted !== false ? $converted : $text);
+    }
+
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text) ?? '';
+    return trim($text, '-') ?: 'imovel';
+}
+
+function propertyPath(array $property, string $purpose = 'venda'): string
+{
+    $purpose = $purpose === 'locacao' ? 'alugar' : ($purpose === 'venda' ? 'comprar' : 'codigo');
+    return sprintf(
+        '/imovel/%s/%s/%s/%s/%d',
+        $purpose,
+        slug($property['tipo'] ?? ''),
+        slug($property['cidade'] ?? ''),
+        slug($property['bairro'] ?? ''),
+        (int) ($property['codimovel'] ?? 0)
+    );
+}
+
+function siteUrl(string $path = '/'): string
+{
+    $configured = rtrim(env('APP_URL', ''), '/');
+    if ($configured !== '') return $configured . '/' . ltrim($path, '/');
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+    return $scheme . '://' . ($host ?: 'localhost') . '/' . ltrim($path, '/');
+}
