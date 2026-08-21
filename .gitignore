@@ -1,0 +1,10 @@
+.env
+*.env
+!.env.example
+*.sql
+*.sql.gz
+*.dump
+*.backup
+.database-backups/
+.deploy-backups/
+
