@@ -169,7 +169,8 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
                     <img
                         class="gallery-slide<?= $index === 0 ? ' is-active' : '' ?>"
                         src="<?= e(detailPhotoUrl($property, $photo)) ?>"
-                        alt="<?= e(($photo['descricao'] ?: $property['tipo']) . ' — foto ' . ($index + 1)) ?>"
+                        alt="<?= e(($photo['type_description'] ?: $property['tipo']) . ' — foto ' . ($index + 1)) ?>"
+                        data-gallery-description="<?= e($photo['type_description'] ?: '') ?>"
                         data-gallery-image
                         <?= $index ? 'loading="lazy"' : '' ?>
                     >
@@ -179,6 +180,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
                     <button class="gallery-arrow gallery-next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
                 <?php endif; ?>
                 <span class="gallery-counter"><b data-gallery-current>1</b> / <?= $photoCount ?></span>
+                <span class="gallery-description" data-gallery-description-text<?= empty($property['photos'][0]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][0]['type_description'] ?? '') ?></span>
                 <button class="gallery-expand" type="button" data-gallery-expand>Ver todas as fotos</button>
             </div>
 
@@ -198,6 +200,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
             <button class="lightbox-arrow lightbox-prev" type="button" data-gallery-prev aria-label="Foto anterior">‹</button>
             <img data-gallery-lightbox-image src="<?= e(detailPhotoUrl($property, $property['photos'][0])) ?>" alt="<?= e($property['tipo']) ?>">
             <button class="lightbox-arrow lightbox-next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
+            <span class="lightbox-description" data-gallery-lightbox-description<?= empty($property['photos'][0]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][0]['type_description'] ?? '') ?></span>
             <span class="lightbox-counter"><b data-gallery-lightbox-current>1</b> / <?= $photoCount ?></span>
         </dialog>
     <?php else: ?>
@@ -287,9 +290,11 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     const slides = [...gallery.querySelectorAll('[data-gallery-image]')];
     const thumbs = [...gallery.querySelectorAll('[data-gallery-thumb]')];
     const current = gallery.querySelector('[data-gallery-current]');
+    const description = gallery.querySelector('[data-gallery-description-text]');
     const lightbox = document.querySelector('[data-gallery-lightbox]');
     const lightboxImage = lightbox.querySelector('[data-gallery-lightbox-image]');
     const lightboxCurrent = lightbox.querySelector('[data-gallery-lightbox-current]');
+    const lightboxDescription = lightbox.querySelector('[data-gallery-lightbox-description]');
     let active = 0;
     let touchStart = 0;
 
@@ -301,6 +306,11 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
         lightboxCurrent.textContent = String(active + 1);
         lightboxImage.src = slides[active].src;
         lightboxImage.alt = slides[active].alt;
+        const activeDescription = slides[active].dataset.galleryDescription || '';
+        description.textContent = activeDescription;
+        description.hidden = activeDescription === '';
+        lightboxDescription.textContent = activeDescription;
+        lightboxDescription.hidden = activeDescription === '';
         thumbs[active]?.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
     };
 

@@ -478,10 +478,13 @@ final class PropertyRepository
     private function photos(int $propertyId, ?int $buildingId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT nome_imagem AS name, descricao, 'imovel' AS source
-             FROM fotoimovel
-             WHERE codimovel = :property AND situacao_cadastro = 'A'
-             ORDER BY ordemexibicao NULLS LAST, codfotoimovel"
+            "SELECT f.nome_imagem AS name, f.descricao,
+                    COALESCE(NULLIF(TRIM(tf.desctipofoto), ''), NULLIF(TRIM(f.descricao), '')) AS type_description,
+                    'imovel' AS source
+             FROM fotoimovel f
+             LEFT JOIN tipofoto tf ON tf.codtipofoto = f.codtipofoto
+             WHERE f.codimovel = :property AND f.situacao_cadastro = 'A'
+             ORDER BY f.ordemexibicao NULLS LAST, f.codfotoimovel"
         );
         $statement->execute(['property' => $propertyId]);
         $photos = $statement->fetchAll();
@@ -491,10 +494,13 @@ final class PropertyRepository
         }
 
         $statement = $this->pdo->prepare(
-            "SELECT nome_imagem AS name, descricao, 'edificio' AS source
-             FROM fotoedificio
-             WHERE codedificio = :building AND situacao_cadastro = 'A'
-             ORDER BY ordemexibicao NULLS LAST, codfotoedificio"
+            "SELECT f.nome_imagem AS name, f.descricao,
+                    COALESCE(NULLIF(TRIM(tf.desctipofoto), ''), NULLIF(TRIM(f.descricao), '')) AS type_description,
+                    'edificio' AS source
+             FROM fotoedificio f
+             LEFT JOIN tipofoto tf ON tf.codtipofoto = f.codtipofoto
+             WHERE f.codedificio = :building AND f.situacao_cadastro = 'A'
+             ORDER BY f.ordemexibicao NULLS LAST, f.codfotoedificio"
         );
         $statement->execute(['building' => $buildingId]);
         return $statement->fetchAll();

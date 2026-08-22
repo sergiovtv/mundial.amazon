@@ -137,6 +137,8 @@ button:hover { background: var(--red-dark); }
 .gallery-next { right: 18px; }
 .gallery-counter, .lightbox-counter { padding: 7px 11px; position: absolute; z-index: 2; color: var(--white); background: rgba(12, 16, 18, .72); border-radius: 20px; font-size: .82rem; }
 .gallery-counter { right: 18px; top: 18px; }
+.gallery-description, .lightbox-description { max-width: calc(100% - 36px); padding: 8px 12px; position: absolute; z-index: 2; color: var(--white); background: rgba(12, 16, 18, .72); border-radius: 5px; font-size: .9rem; }
+.gallery-description { left: 18px; bottom: 18px; }
 .gallery-expand { width: auto; height: auto; padding: 10px 14px; position: absolute; right: 18px; bottom: 18px; z-index: 2; color: var(--ink); background: rgba(255, 255, 255, .94); border: 1px solid rgba(0, 0, 0, .08); border-radius: 5px; }
 .gallery-expand:hover { color: var(--white); }
 .gallery-thumbs { margin-top: 10px; padding-bottom: 4px; display: flex; gap: 9px; overflow-x: auto; scrollbar-width: thin; }
@@ -153,6 +155,7 @@ button:hover { background: var(--red-dark); }
 .lightbox-prev { left: 18px; }
 .lightbox-next { right: 18px; }
 .lightbox-counter { left: 50%; bottom: 18px; transform: translateX(-50%); }
+.lightbox-description { left: 18px; bottom: 18px; }
 .gallery-placeholder { height: min(50vw, 480px); display: grid; place-items: center; color: var(--muted); background: linear-gradient(135deg, #e4e1da, #cbc9c3); border-radius: 10px; }
 .detail-layout { margin-top: 38px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 60px; }
 .fact-grid { padding-bottom: 28px; display: flex; flex-wrap: wrap; gap: 20px 38px; border-bottom: 1px solid var(--line); }
