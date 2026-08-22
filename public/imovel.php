@@ -118,6 +118,8 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $property ? e($property['tipo'] . ' em ' . $property['bairro']) : 'Imóvel não encontrado' ?> | Mundial Imóveis</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta name="description" content="<?= e($metaDescription) ?>">
     <link rel="canonical" href="<?= e($canonicalUrl) ?>">
     <?php if (!$property): ?><meta name="robots" content="noindex,follow"><?php endif; ?>

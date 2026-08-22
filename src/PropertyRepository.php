@@ -158,9 +158,40 @@ final class PropertyRepository
         return $statement->fetchAll();
     }
 
-    public function visualGalleries(int $limitPerGallery = 8): array
+    public function visualGalleries(int $limitPerGallery = 8, ?string $visitorHash = null): array
     {
         $limitPerGallery = max(1, min(12, $limitPerGallery));
+        $candidateLimit = min(24, $limitPerGallery * 2);
+        $feedbackAvailable = $this->photoFeedbackAvailable();
+        $scoreColumns = $feedbackAvailable
+            ? 'COALESCE(s.likes, 0) AS likes, COALESCE(s.dislikes, 0) AS dislikes, COALESCE(s.score, 0) AS score,'
+            : '0::integer AS likes, 0::integer AS dislikes, 0::integer AS score,';
+        $propertyScoreJoin = $feedbackAvailable
+            ? "LEFT JOIN homepage_photo_score s ON s.source = 'imovel' AND s.photo_id = f.codfotoimovel"
+            : '';
+        $buildingScoreJoin = $feedbackAvailable
+            ? "LEFT JOIN homepage_photo_score s ON s.source = 'edificio' AND s.photo_id = f.codfotoedificio"
+            : '';
+        $propertyFeedbackWhere = $feedbackAvailable
+            ? "AND COALESCE(s.hidden, FALSE) = FALSE
+               AND (COALESCE(s.likes, 0) + COALESCE(s.dislikes, 0) < 5
+                    OR COALESCE(s.dislikes, 0) * 100 < (COALESCE(s.likes, 0) + COALESCE(s.dislikes, 0)) * 60)
+               AND NOT EXISTS (
+                   SELECT 1 FROM homepage_photo_reaction r
+                   WHERE r.source = 'imovel' AND r.photo_id = f.codfotoimovel
+                     AND r.visitor_hash = :property_visitor_hash AND r.reaction = -1
+               )"
+            : '';
+        $buildingFeedbackWhere = $feedbackAvailable
+            ? "AND COALESCE(s.hidden, FALSE) = FALSE
+               AND (COALESCE(s.likes, 0) + COALESCE(s.dislikes, 0) < 5
+                    OR COALESCE(s.dislikes, 0) * 100 < (COALESCE(s.likes, 0) + COALESCE(s.dislikes, 0)) * 60)
+               AND NOT EXISTS (
+                   SELECT 1 FROM homepage_photo_reaction r
+                   WHERE r.source = 'edificio' AND r.photo_id = f.codfotoedificio
+                     AND r.visitor_hash = :building_visitor_hash AND r.reaction = -1
+               )"
+            : '';
         $sql = "
             WITH photo_theme(codtipofoto, theme) AS (
                 VALUES
@@ -175,6 +206,7 @@ final class PropertyRepository
             candidates AS (
                 SELECT
                     pt.theme,
+                    f.codfotoimovel AS photo_id,
                     i.codimovel,
                     i.codedificio,
                     t.desctipoimovel AS tipo,
@@ -182,6 +214,7 @@ final class PropertyRepository
                     c.desccidade AS cidade,
                     f.nome_imagem,
                     'imovel'::text AS photo_source,
+                    {$scoreColumns}
                     COALESCE(f.dataalteracao, f.dataatualizacao, f.data) AS photo_date,
                     CASE WHEN oi.codoperacao = 5 THEN 'venda' ELSE 'locacao' END AS finalidade
                 FROM fotoimovel f
@@ -191,6 +224,7 @@ final class PropertyRepository
                 JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
+                {$propertyScoreJoin}
                 WHERE f.situacao_cadastro = 'A'
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
@@ -200,11 +234,13 @@ final class PropertyRepository
                       WHEN 4 THEN COALESCE(i.valorlocacao, 0)
                       ELSE COALESCE(i.valorvenda, 0)
                   END > 0
+                  {$propertyFeedbackWhere}
 
                 UNION ALL
 
                 SELECT
                     pt.theme,
+                    f.codfotoedificio AS photo_id,
                     i.codimovel,
                     i.codedificio,
                     t.desctipoimovel AS tipo,
@@ -212,6 +248,7 @@ final class PropertyRepository
                     c.desccidade AS cidade,
                     f.nome_imagem,
                     'edificio'::text AS photo_source,
+                    {$scoreColumns}
                     COALESCE(f.dataalteracao, f.dataatualizacao, f.data) AS photo_date,
                     CASE WHEN oi.codoperacao = 5 THEN 'venda' ELSE 'locacao' END AS finalidade
                 FROM fotoedificio f
@@ -221,6 +258,7 @@ final class PropertyRepository
                 JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
+                {$buildingScoreJoin}
                 WHERE f.situacao_cadastro = 'A'
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
@@ -230,6 +268,7 @@ final class PropertyRepository
                       WHEN 4 THEN COALESCE(i.valorlocacao, 0)
                       ELSE COALESCE(i.valorvenda, 0)
                   END > 0
+                  {$buildingFeedbackWhere}
             ),
             unique_images AS (
                 SELECT DISTINCT ON (
@@ -256,19 +295,23 @@ final class PropertyRepository
             ranked AS (
                 SELECT *, ROW_NUMBER() OVER (
                     PARTITION BY theme
-                    ORDER BY photo_date DESC NULLS LAST, codimovel DESC
+                    ORDER BY score DESC, likes DESC, photo_date DESC NULLS LAST, codimovel DESC
                 ) AS position
                 FROM unique_photos
             )
-            SELECT theme, codimovel, codedificio, tipo, bairro, cidade,
-                   nome_imagem, photo_source, finalidade
+            SELECT theme, photo_id, codimovel, codedificio, tipo, bairro, cidade,
+                   nome_imagem, photo_source, finalidade, likes, dislikes, score
             FROM ranked
-            WHERE position <= :gallery_limit
+            WHERE position <= :candidate_limit
             ORDER BY theme, position
         ";
 
         $statement = $this->pdo->prepare($sql);
-        $statement->bindValue(':gallery_limit', $limitPerGallery, PDO::PARAM_INT);
+        $statement->bindValue(':candidate_limit', $candidateLimit, PDO::PARAM_INT);
+        if ($feedbackAvailable) {
+            $statement->bindValue(':property_visitor_hash', $visitorHash ?? str_repeat('0', 64));
+            $statement->bindValue(':building_visitor_hash', $visitorHash ?? str_repeat('0', 64));
+        }
         $statement->execute();
 
         $definitions = [
@@ -290,10 +333,66 @@ final class PropertyRepository
         $galleries = [];
         foreach ($definitions as $theme => $definition) {
             if (($photosByTheme[$theme] ?? []) === []) continue;
-            $galleries[] = $definition + ['key' => $theme, 'photos' => $photosByTheme[$theme]];
+            $galleries[] = $definition + [
+                'key' => $theme,
+                'photos' => array_slice($photosByTheme[$theme], 0, $limitPerGallery),
+                'reserves' => array_slice($photosByTheme[$theme], $limitPerGallery),
+            ];
         }
 
         return $galleries;
+    }
+
+    public function photoFeedbackAvailable(): bool
+    {
+        $statement = $this->pdo->query(
+            "SELECT to_regclass('public.homepage_photo_score') IS NOT NULL
+                AND to_regclass('public.homepage_photo_reaction') IS NOT NULL"
+        );
+        return (bool) $statement->fetchColumn();
+    }
+
+    public function recordPhotoReaction(string $source, int $photoId, string $visitorHash, int $reaction): array
+    {
+        if (!$this->photoFeedbackAvailable()) {
+            throw new RuntimeException('A avaliação de fotos ainda não está disponível.');
+        }
+        if (!in_array($source, ['imovel', 'edificio'], true) || $photoId < 1 || !in_array($reaction, [-1, 1], true)) {
+            throw new InvalidArgumentException('Avaliação inválida.');
+        }
+
+        $table = $source === 'imovel' ? 'fotoimovel' : 'fotoedificio';
+        $idColumn = $source === 'imovel' ? 'codfotoimovel' : 'codfotoedificio';
+        $exists = $this->pdo->prepare(
+            "SELECT 1 FROM {$table}
+             WHERE {$idColumn} = :photo AND situacao_cadastro = 'A'
+             LIMIT 1"
+        );
+        $exists->execute(['photo' => $photoId]);
+        if (!$exists->fetchColumn()) {
+            throw new InvalidArgumentException('Foto não encontrada.');
+        }
+
+        $statement = $this->pdo->prepare(
+            "INSERT INTO homepage_photo_reaction (source, photo_id, visitor_hash, reaction)
+             VALUES (:source, :photo, :visitor, :reaction)
+             ON CONFLICT (source, photo_id, visitor_hash)
+             DO UPDATE SET reaction = EXCLUDED.reaction, updated_at = CURRENT_TIMESTAMP"
+        );
+        $statement->execute([
+            'source' => $source,
+            'photo' => $photoId,
+            'visitor' => $visitorHash,
+            'reaction' => $reaction,
+        ]);
+
+        $score = $this->pdo->prepare(
+            'SELECT likes, dislikes, score
+             FROM homepage_photo_score
+             WHERE source = :source AND photo_id = :photo'
+        );
+        $score->execute(['source' => $source, 'photo' => $photoId]);
+        return $score->fetch() ?: ['likes' => 0, 'dislikes' => 0, 'score' => 0];
     }
 
     public function find(int $propertyId, string $purpose = ''): ?array

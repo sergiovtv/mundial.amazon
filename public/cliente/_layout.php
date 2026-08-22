@@ -11,6 +11,8 @@ function customerHeader(string $title, ?array $customer = null): void
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title><?= e($title) ?> | Mundial Imóveis</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="customer-body">

@@ -81,6 +81,25 @@ function siteUrl(string $path = '/'): string
     return $scheme . '://' . ($host ?: 'localhost') . '/' . ltrim($path, '/');
 }
 
+function anonymousPhotoVisitorHash(): string
+{
+    $cookieName = 'mundial_foto_visitante';
+    $token = (string) ($_COOKIE[$cookieName] ?? '');
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+        $token = bin2hex(random_bytes(32));
+        setcookie($cookieName, $token, [
+            'expires' => time() + 31536000,
+            'path' => '/',
+            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_COOKIE[$cookieName] = $token;
+    }
+
+    return hash('sha256', $token);
+}
+
 function cachedPhotoUrl(string $relativePath): string
 {
     $segments = array_values(array_filter(

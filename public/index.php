@@ -23,6 +23,7 @@ $page = max(1, (int) ($_GET['pagina'] ?? 1));
 $error = null;
 $whatsappPhone = '';
 $hasFilters = array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' ? $value !== '' : $value !== 'venda', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
+$photoVisitorHash = $hasFilters ? null : anonymousPhotoVisitorHash();
 
 try {
     $repository = new PropertyRepository(Database::connect());
@@ -30,7 +31,7 @@ try {
     $options = $repository->options();
     $neighborhoods = $repository->neighborhoods(ctype_digit((string) $filters['cidade']) ? (int) $filters['cidade'] : null);
     $result = $repository->search($filters, $page);
-    $visualGalleries = $hasFilters ? [] : $repository->visualGalleries();
+    $visualGalleries = $hasFilters ? [] : $repository->visualGalleries(8, $photoVisitorHash);
 } catch (Throwable $exception) {
     $error = env('APP_DEBUG', 'false') === 'true' ? $exception->getMessage() : 'Não foi possível consultar os imóveis agora.';
     $options = ['types' => [], 'cities' => []];
@@ -76,6 +77,20 @@ function visualPhotoUrl(array $photo): string
     }
     return cachedPhotoUrl(sprintf('%d/%s', (int) $photo['codimovel'], (string) $photo['nome_imagem']));
 }
+
+function visualPhotoPayload(array $photo, string $galleryTitle): array
+{
+    return [
+        'photoId' => (int) $photo['photo_id'],
+        'source' => (string) $photo['photo_source'],
+        'imageUrl' => visualPhotoUrl($photo),
+        'propertyUrl' => propertyPath($photo, (string) $photo['finalidade']),
+        'type' => (string) $photo['tipo'],
+        'neighborhood' => (string) $photo['bairro'],
+        'ariaLabel' => 'Ver ' . $photo['tipo'] . ' em ' . $photo['bairro'],
+        'alt' => $galleryTitle . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro'],
+    ];
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -83,6 +98,8 @@ function visualPhotoUrl(array $photo): string
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Encontre seu imóvel | Mundial Imóveis</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta name="description" content="Imóveis à venda e para locação em Ribeirão Preto e região. Encontre casas, apartamentos e terrenos na Mundial Imóveis.">
     <link rel="canonical" href="<?= e($canonicalUrl) ?>">
     <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
@@ -173,16 +190,27 @@ function visualPhotoUrl(array $photo): string
                     </div>
                     <p><?= e($gallery['description']) ?></p>
                 </div>
-                <div class="visual-mosaic visual-mosaic-<?= e((string) (($galleryIndex % 3) + 1)) ?>">
+                <div class="visual-mosaic visual-mosaic-<?= e((string) (($galleryIndex % 3) + 1)) ?>" data-photo-gallery="<?= e($gallery['key']) ?>">
                     <?php foreach ($gallery['photos'] as $photoIndex => $photo): ?>
-                        <a class="visual-tile visual-tile-<?= e((string) (($photoIndex % 8) + 1)) ?>" href="<?= e(propertyPath($photo, $photo['finalidade'])) ?>" aria-label="Ver <?= e($photo['tipo']) ?> em <?= e($photo['bairro']) ?>">
-                            <img src="<?= e(visualPhotoUrl($photo)) ?>" alt="<?= e($gallery['title'] . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro']) ?>" loading="lazy" decoding="async">
-                            <span>
-                                <small><?= e($photo['tipo']) ?></small>
-                                <strong><?= e($photo['bairro']) ?></strong>
-                            </span>
-                        </a>
+                        <article class="visual-tile visual-tile-<?= e((string) (($photoIndex % 8) + 1)) ?>" data-photo-id="<?= e($photo['photo_id']) ?>" data-photo-source="<?= e($photo['photo_source']) ?>">
+                            <a class="visual-tile-link" href="<?= e(propertyPath($photo, $photo['finalidade'])) ?>" aria-label="Ver <?= e($photo['tipo']) ?> em <?= e($photo['bairro']) ?>">
+                                <img src="<?= e(visualPhotoUrl($photo)) ?>" alt="<?= e($gallery['title'] . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro']) ?>" loading="lazy" decoding="async">
+                                <span class="visual-caption">
+                                    <small><?= e($photo['tipo']) ?></small>
+                                    <strong><?= e($photo['bairro']) ?></strong>
+                                </span>
+                            </a>
+                            <div class="photo-reactions" aria-label="Avalie esta foto">
+                                <button type="button" class="photo-reaction photo-like" data-reaction="1" aria-label="Gostei desta foto" title="Gostei desta foto">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22H3a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h4m0 11V11l4-9a3 3 0 0 1 3 3v4h5.3a2 2 0 0 1 2 2.4l-1.5 8A2 2 0 0 1 17.8 21H7Z"/></svg>
+                                </button>
+                                <button type="button" class="photo-reaction photo-dislike" data-reaction="-1" aria-label="Não gostei desta foto" title="Não gostei desta foto">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2H3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h4m0-11v11l4 9a3 3 0 0 0 3-3v-4h5.3a2 2 0 0 0 2-2.4l-1.5-8A2 2 0 0 0 17.8 3H7Z"/></svg>
+                                </button>
+                            </div>
+                        </article>
                     <?php endforeach; ?>
+                    <script type="application/json" class="visual-reserves"><?= json_encode(array_map(static fn (array $photo): array => visualPhotoPayload($photo, $gallery['title']), $gallery['reserves']), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
                 </div>
             </section>
         <?php endforeach; ?>
@@ -251,5 +279,6 @@ function visualPhotoUrl(array $photo): string
     <span>WhatsApp</span>
 </a>
 <?php endif; ?>
+<script src="/assets/home-galleries.js" defer></script>
 </body>
 </html>
