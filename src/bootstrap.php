@@ -107,6 +107,11 @@ function cachedPhotoUrl(string $relativePath): string
         static fn (string $segment): bool => $segment !== ''
     ));
 
+    $originalRoot = getenv('PHOTO_ORIGINAL_ROOT');
+    if (env('APP_ENV', 'production') === 'development' && ($originalRoot === false || !is_dir($originalRoot))) {
+        return rtrim(env('MEDIA_BASE_URL', '/fotos'), '/') . '/' . implode('/', array_map('rawurlencode', $segments));
+    }
+
     return '/cache/' . implode('/', array_map('rawurlencode', $segments));
 }
 

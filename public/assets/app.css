@@ -40,6 +40,7 @@ body {
 .hero > div { max-width: 760px; }
 .hero h1 { max-width: 700px; margin: 8px 0 14px; font-family: Georgia, serif; font-size: clamp(2.5rem, 6vw, 5rem); line-height: .98; font-weight: 500; }
 .hero > div > p:last-child { max-width: 620px; color: #cbd3d6; font-size: 1.05rem; line-height: 1.6; }
+.hero-mobile-copy, .mobile-discovery-teaser, .mobile-filter-toggle { display: none; }
 .eyebrow { margin: 0; color: #cf7779; font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .16em; }
 
 .search-panel {
@@ -145,7 +146,7 @@ button:hover { background: var(--red-dark); }
 .detail-prices small { margin-left: 3px; color: var(--muted); font-size: .8rem; font-weight: 500; }
 .property-gallery { position: relative; }
 .gallery-stage { height: min(58vw, 620px); position: relative; overflow: hidden; background: #242729; border-radius: 10px; }
-.gallery-slide { width: 100%; height: 100%; position: absolute; inset: 0; opacity: 0; object-fit: cover; transition: opacity .35s ease; }
+.gallery-slide { width: 100%; height: 100%; position: absolute; inset: 0; opacity: 0; object-fit: cover; cursor: zoom-in; transition: opacity .35s ease; }
 .gallery-slide.is-active { opacity: 1; }
 .gallery-arrow, .lightbox-arrow { width: 48px; height: 48px; padding: 0; display: grid; place-items: center; position: absolute; top: 50%; z-index: 2; color: var(--ink); background: rgba(255, 255, 255, .92); border-radius: 50%; box-shadow: 0 5px 18px rgba(0, 0, 0, .18); font-size: 2rem; font-weight: 400; transform: translateY(-50%); }
 .gallery-arrow:hover { color: var(--white); }
@@ -283,9 +284,37 @@ button:hover { background: var(--red-dark); }
 }
 
 @media (max-width: 620px) {
-    .hero { padding-top: 48px; }
-    .search-panel { grid-template-columns: 1fr; margin-bottom: -120px; }
-    .results { padding-top: 155px; }
+    .site-header { min-height: 68px; padding: 8px 18px; }
+    .brand img { width: 76px; max-height: 54px; }
+    .secondary-link { font-size: .86rem; }
+    .hero { padding: 38px 18px 82px; color: #241b1d; background: radial-gradient(circle at 92% 4%, rgba(210, 117, 104, .42), transparent 30%), linear-gradient(150deg, #fff6ec 0%, #f4dfd4 55%, #e8c5b9 100%); }
+    .hero .eyebrow { color: var(--red); }
+    .hero h1 { max-width: 350px; margin-top: 10px; color: #291d20; font-size: clamp(2.85rem, 14vw, 4rem); line-height: .91; letter-spacing: -.045em; }
+    .hero-desktop-copy { display: none; }
+    .hero-mobile-copy { max-width: 335px !important; margin: 20px 0 0; display: block; color: #67565a !important; font-size: 1rem !important; line-height: 1.5 !important; }
+    .mobile-discovery-teaser { margin-top: 30px; display: block; }
+    .mobile-teaser-copy { max-width: 340px; display: grid; gap: 5px; }
+    .mobile-teaser-copy span { color: var(--red); font-size: .69rem; font-weight: 850; text-transform: uppercase; letter-spacing: .15em; }
+    .mobile-teaser-copy strong { color: #36272a; font-family: Georgia, serif; font-size: 1.42rem; font-weight: 500; line-height: 1.08; }
+    .mobile-teaser-cards { height: 225px; margin: 22px -18px 0; position: relative; overflow: hidden; }
+    .mobile-teaser-card { width: 48vw; height: 192px; position: absolute; top: 12px; overflow: hidden; color: var(--white); background: #b9a9a2; border: 3px solid rgba(255, 255, 255, .8); border-radius: 18px; box-shadow: 0 17px 35px rgba(74, 40, 43, .2); text-decoration: none; transform-origin: bottom center; }
+    .mobile-teaser-card::after { content: ''; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(21, 13, 15, .72)); }
+    .mobile-teaser-card img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .mobile-teaser-card span { position: absolute; left: 14px; bottom: 13px; z-index: 1; font-family: Georgia, serif; font-size: 1.1rem; }
+    .mobile-teaser-card-1 { left: -4vw; z-index: 1; transform: rotate(-6deg); }
+    .mobile-teaser-card-2 { left: 26vw; top: 2px; z-index: 3; transform: rotate(1.5deg); }
+    .mobile-teaser-card-3 { left: 60vw; z-index: 2; transform: rotate(7deg); }
+    .mobile-teaser-card-3 span { right: 14px; left: auto; }
+    .mobile-discovery-cta { min-height: 54px; margin-top: 2px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; color: var(--white); background: var(--red); border-radius: 999px; box-shadow: 0 12px 26px rgba(142, 31, 34, .24); font-size: .95rem; font-weight: 850; text-decoration: none; }
+    .mobile-discovery-cta span { width: 32px; height: 32px; display: grid; place-items: center; color: var(--red); background: var(--white); border-radius: 50%; font-size: 1.2rem; }
+    .mobile-filter-toggle { width: 100%; height: auto; margin-top: 14px; padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #4d3a3e; background: rgba(255, 255, 255, .5); border: 1px solid rgba(120, 78, 79, .18); border-radius: 14px; text-align: left; }
+    .mobile-filter-toggle:hover { color: #4d3a3e; background: rgba(255, 255, 255, .72); }
+    .mobile-filter-toggle span { font-size: .72rem; font-weight: 650; }
+    .mobile-filter-toggle strong { flex: 0 0 auto; color: var(--red); font-size: .8rem; }
+    .search-panel { margin: 16px 0 0; padding: 18px; display: none; grid-template-columns: 1fr; border-radius: 16px; box-shadow: 0 18px 45px rgba(65, 35, 38, .18); }
+    .search-panel.is-open { display: grid; animation: mobile-filters-open .3s ease both; }
+    @keyframes mobile-filters-open { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .results { padding-top: 60px; }
     .property-grid { grid-template-columns: 1fr; }
     .environment { display: none; }
     .detail-page { padding-top: 32px; }
@@ -310,7 +339,7 @@ button:hover { background: var(--red-dark); }
     .customer-dashboard { padding-top: 40px; }
     .customer-section { padding: 22px 15px; }
     .contract-grid { grid-template-columns: 1fr; }
-    .visual-discovery { padding: 175px 18px 10px; }
+    .visual-discovery { padding: 72px 18px 10px; scroll-margin-top: 10px; }
     .visual-discovery-intro { margin-bottom: 60px; text-align: left; }
     .visual-discovery-intro > p:last-child { margin: 0; }
     .visual-gallery { margin-bottom: 75px; }

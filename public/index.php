@@ -124,10 +124,40 @@ function visualPropertyPhotoPath(array $photo): string
         <div>
             <p class="eyebrow">Ribeirão Preto e região</p>
             <h1>Um novo jeito de encontrar seu lugar.</h1>
-            <p>Busque entre imóveis reais da Mundial com filtros rápidos e informações objetivas.</p>
+            <p class="hero-desktop-copy">Busque entre imóveis reais da Mundial com filtros rápidos e informações objetivas.</p>
+            <p class="hero-mobile-copy">Antes dos metros quadrados, escolha aquilo que faz seus olhos brilharem.</p>
         </div>
 
-        <form class="search-panel" method="get">
+        <?php if ($visualGalleries !== []): ?>
+            <div class="mobile-discovery-teaser" aria-label="Uma prévia do novo jeito de encontrar imóveis">
+                <div class="mobile-teaser-copy">
+                    <span>Explore com os olhos</span>
+                    <strong>Casas escolhidas pelos detalhes que encantam.</strong>
+                </div>
+                <div class="mobile-teaser-cards">
+                    <?php foreach (array_slice($visualGalleries, 0, 3) as $teaserIndex => $teaserGallery): ?>
+                        <?php $teaserPhoto = $teaserGallery['photos'][0] ?? null; ?>
+                        <?php if ($teaserPhoto): ?>
+                            <a class="mobile-teaser-card mobile-teaser-card-<?= e($teaserIndex + 1) ?>" href="#gallery-<?= e($teaserGallery['key']) ?>">
+                                <img src="<?= e(visualPhotoUrl($teaserPhoto)) ?>" alt="<?= e($teaserGallery['title']) ?>" decoding="async">
+                                <span><?= e($teaserGallery['key'] === 'piscinas' ? 'Piscinas' : ($teaserGallery['key'] === 'jardins' ? 'Jardins' : 'Vistas')) ?></span>
+                            </a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+                <a class="mobile-discovery-cta" href="#descobrir">
+                    Quero me surpreender
+                    <span aria-hidden="true">↓</span>
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <button class="mobile-filter-toggle" type="button" aria-expanded="false" aria-controls="property-search">
+            <span>Prefere procurar do jeito tradicional?</span>
+            <strong>Usar filtros</strong>
+        </button>
+
+        <form class="search-panel" id="property-search" method="get">
             <label>Código do imóvel
                 <input name="codigo" inputmode="numeric" pattern="[0-9]*" value="<?= e($filters['codigo']) ?>" placeholder="Ex.: 62602">
             </label>
@@ -180,7 +210,7 @@ function visualPropertyPhotoPath(array $photo): string
     </section>
 
     <?php if ($visualGalleries !== []): ?>
-    <section class="visual-discovery" aria-labelledby="visual-discovery-title">
+    <section class="visual-discovery" id="descobrir" aria-labelledby="visual-discovery-title">
         <div class="visual-discovery-intro">
             <p class="eyebrow">Explore com os olhos</p>
             <h2 id="visual-discovery-title">Às vezes, a escolha começa por um detalhe.</h2>

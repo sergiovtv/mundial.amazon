@@ -1,6 +1,16 @@
 (() => {
     const endpoint = '/api/photo-reaction.php';
 
+    const filterToggle = document.querySelector('.mobile-filter-toggle');
+    const searchPanel = document.querySelector('#property-search');
+    filterToggle?.addEventListener('click', () => {
+        const open = !searchPanel?.classList.contains('is-open');
+        searchPanel?.classList.toggle('is-open', open);
+        filterToggle.setAttribute('aria-expanded', String(open));
+        filterToggle.querySelector('strong').textContent = open ? 'Fechar filtros' : 'Usar filtros';
+        if (open) window.setTimeout(() => searchPanel?.scrollIntoView({behavior: 'smooth', block: 'start'}), 80);
+    });
+
     function tileMarkup(photo) {
         return `
             <a class="visual-tile-link" href="${escapeAttribute(photo.propertyUrl)}" aria-label="${escapeAttribute(photo.ariaLabel)}">

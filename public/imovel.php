@@ -330,6 +330,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     document.querySelectorAll('[data-gallery-prev]').forEach(button => button.addEventListener('click', () => show(active - 1)));
     document.querySelectorAll('[data-gallery-next]').forEach(button => button.addEventListener('click', () => show(active + 1)));
     thumbs.forEach(button => button.addEventListener('click', () => show(Number(button.dataset.galleryThumb))));
+    slides.forEach(slide => slide.addEventListener('click', () => lightbox.showModal()));
     gallery.querySelector('[data-gallery-expand]').addEventListener('click', () => lightbox.showModal());
     lightbox.querySelector('[data-gallery-close]').addEventListener('click', () => lightbox.close());
     lightbox.addEventListener('click', event => { if (event.target === lightbox) lightbox.close(); });
