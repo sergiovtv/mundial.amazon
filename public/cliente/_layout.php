@@ -15,7 +15,9 @@ function customerHeader(string $title, ?array $customer = null): void
 </head>
 <body class="customer-body">
 <header class="site-header customer-header">
-    <a class="brand" href="/">Mundial <span>Imóveis</span></a>
+    <a class="brand" href="/" aria-label="Mundial Imóveis">
+        <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
+    </a>
     <?php if ($customer): ?>
     <nav class="customer-nav" aria-label="Área do cliente">
         <a href="/cliente/painel.php">Meus documentos</a>

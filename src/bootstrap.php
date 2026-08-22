@@ -8,6 +8,7 @@ require_once __DIR__ . '/LegacyCustomerCipher.php';
 require_once __DIR__ . '/CustomerRepository.php';
 require_once __DIR__ . '/BrevoMailer.php';
 require_once __DIR__ . '/BoletoService.php';
+require_once __DIR__ . '/WatermarkedImageCache.php';
 
 function env(string $name, ?string $default = null): string
 {
@@ -78,6 +79,16 @@ function siteUrl(string $path = '/'): string
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
     return $scheme . '://' . ($host ?: 'localhost') . '/' . ltrim($path, '/');
+}
+
+function cachedPhotoUrl(string $relativePath): string
+{
+    $segments = array_values(array_filter(
+        explode('/', str_replace('\\', '/', $relativePath)),
+        static fn (string $segment): bool => $segment !== ''
+    ));
+
+    return '/cache/' . implode('/', array_map('rawurlencode', $segments));
 }
 
 function formatCpfCnpj(string $value): ?string

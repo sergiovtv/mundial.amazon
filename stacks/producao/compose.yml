@@ -11,6 +11,9 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       MEDIA_BASE_URL: /fotos
+      PHOTO_ORIGINAL_ROOT: /var/www/html/public/fotos
+      PHOTO_CACHE_ROOT: /var/www/html/public/cache
+      PHOTO_WATERMARK_FILE: /var/www/html/public/img/watermark-mundial.png
       APP_URL: ${APP_URL:-https://mundialimoveis.com.br}
       DB_HOST: postgres
       DB_PORT: 5432
@@ -27,6 +30,7 @@ services:
       - "80:80"
     volumes:
       - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
+      - /var/lib/mundial/media/CacheFotos:/var/www/html/public/cache
       - /var/lib/mundial/documentos:/var/lib/mundial/documentos:ro
     networks:
       - mundial_backend

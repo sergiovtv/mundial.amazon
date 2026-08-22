@@ -8,3 +8,4 @@
 *.backup
 .database-backups/
 .deploy-backups/
+public/cache/

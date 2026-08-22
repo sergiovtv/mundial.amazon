@@ -50,24 +50,20 @@ $canonicalUrl = siteUrl('/');
 
 function propertyPhotoUrl(array $property): ?string
 {
-    $baseUrl = rtrim(env('MEDIA_BASE_URL', '/fotos'), '/');
-
     if (!empty($property['foto_imovel'])) {
-        return sprintf(
-            '%s/%d/%s',
-            $baseUrl,
+        return cachedPhotoUrl(sprintf(
+            '%d/%s',
             (int) $property['codimovel'],
-            rawurlencode((string) $property['foto_imovel'])
-        );
+            (string) $property['foto_imovel']
+        ));
     }
 
     if (!empty($property['codedificio']) && !empty($property['foto_edificio'])) {
-        return sprintf(
-            '%s/Edificios/%d/%s',
-            $baseUrl,
+        return cachedPhotoUrl(sprintf(
+            'Edificios/%d/%s',
             (int) $property['codedificio'],
-            rawurlencode((string) $property['foto_edificio'])
-        );
+            (string) $property['foto_edificio']
+        ));
     }
 
     return null;
@@ -75,11 +71,10 @@ function propertyPhotoUrl(array $property): ?string
 
 function visualPhotoUrl(array $photo): string
 {
-    $baseUrl = rtrim(env('MEDIA_BASE_URL', '/fotos'), '/');
     if ($photo['photo_source'] === 'edificio') {
-        return sprintf('%s/Edificios/%d/%s', $baseUrl, (int) $photo['codedificio'], rawurlencode((string) $photo['nome_imagem']));
+        return cachedPhotoUrl(sprintf('Edificios/%d/%s', (int) $photo['codedificio'], (string) $photo['nome_imagem']));
     }
-    return sprintf('%s/%d/%s', $baseUrl, (int) $photo['codimovel'], rawurlencode((string) $photo['nome_imagem']));
+    return cachedPhotoUrl(sprintf('%d/%s', (int) $photo['codimovel'], (string) $photo['nome_imagem']));
 }
 ?>
 <!doctype html>
@@ -95,7 +90,9 @@ function visualPhotoUrl(array $photo): string
 </head>
 <body>
 <header class="site-header">
-    <a class="brand" href="/">Mundial <span>Imóveis</span></a>
+    <a class="brand" href="/" aria-label="Mundial Imóveis">
+        <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
+    </a>
     <a class="secondary-link" href="/cliente/">Área do cliente</a>
 </header>
 

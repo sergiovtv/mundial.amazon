@@ -90,11 +90,10 @@ try {
 
 function detailPhotoUrl(array $property, array $photo): string
 {
-    $baseUrl = rtrim(env('MEDIA_BASE_URL', '/fotos'), '/');
     $folder = $photo['source'] === 'edificio'
         ? 'Edificios/' . (int) $property['codedificio']
         : (string) (int) $property['codimovel'];
-    return $baseUrl . '/' . $folder . '/' . rawurlencode((string) $photo['name']);
+    return cachedPhotoUrl($folder . '/' . (string) $photo['name']);
 }
 
 function yes(mixed $value): bool
@@ -133,7 +132,9 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
 </head>
 <body>
 <header class="site-header">
-    <a class="brand" href="/">Mundial <span>Imóveis</span></a>
+    <a class="brand" href="/" aria-label="Mundial Imóveis">
+        <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
+    </a>
     <a class="back-link" href="/">← Voltar para a busca</a>
 </header>
 

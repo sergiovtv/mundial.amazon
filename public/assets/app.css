@@ -27,8 +27,8 @@ body {
     border-bottom: 1px solid var(--line);
 }
 
-.brand { color: var(--red); font-size: 1.35rem; font-weight: 800; text-decoration: none; letter-spacing: -.04em; }
-.brand span { color: var(--ink); font-weight: 500; }
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+.brand img { width: auto; height: 64px; display: block; }
 .environment { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; }
 
 .hero {
