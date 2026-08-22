@@ -16,7 +16,7 @@ try {
         throw new RuntimeException('Boleto não encontrado.');
     }
     $repository->log((string) $customer['cpf'], 'Boleto aberto', (int) $boleto['cod_contrato'], (int) $number);
-    (new BoletoService())->output($boleto);
+    (new BoletoService(Database::connect()))->output($boleto);
 } catch (Throwable $exception) {
     error_log('Boleto cliente: ' . $exception->getMessage());
     if (http_response_code() < 400) http_response_code(503);

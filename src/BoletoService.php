@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 final class BoletoService
 {
+    public function __construct(private readonly PDO $parameters)
+    {
+    }
+
     public function output(array $boleto): never
     {
         $number = (int) $boleto['num_boleto'];
@@ -20,7 +24,7 @@ final class BoletoService
         $baseUrl = rtrim(env('BOLETO_API_BASE_URL', 'http://177.200.69.64:9090/sistema/api/site_api.php'), '?');
         $query = http_build_query([
             'cod_boleto' => $code,
-            'chave' => env('BOLETO_API_KEY'),
+            'chave' => $this->apiKey(),
             'empresa' => env('BOLETO_API_COMPANY', 'sm'),
             'rotina' => env('BOLETO_API_ROUTINE', 'pdf_boleto_sicredi'),
         ]);
@@ -36,6 +40,19 @@ final class BoletoService
         $this->headers($number, strlen($pdf));
         echo $pdf;
         exit;
+    }
+
+    private function apiKey(): string
+    {
+        $statement = $this->parameters->prepare(
+            'SELECT valorparametro FROM parametro WHERE nomeparametro = :name LIMIT 1'
+        );
+        $statement->execute(['name' => 'BOLETO_API_KEY']);
+        $key = trim((string) $statement->fetchColumn());
+        if ($key === '') {
+            throw new RuntimeException('API de boleto não configurada.');
+        }
+        return $key;
     }
 
     private function streamFile(string $file, int $number): never
