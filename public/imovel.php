@@ -16,6 +16,7 @@ $whatsappPhone = '';
 $formErrors = [];
 $form = ['name' => '', 'phone' => '', 'email' => '', 'message' => ''];
 $sent = isset($_GET['contato']) && $_GET['contato'] === 'enviado';
+$requestedPhoto = (string) ($_GET['foto'] ?? '');
 
 if (empty($_SESSION['contact_csrf'])) {
     $_SESSION['contact_csrf'] = bin2hex(random_bytes(24));
@@ -108,6 +109,15 @@ $metaDescription = $property
     ? sprintf('%s %s em %s, %s. Referência %d.', $property['tipo'], $purpose === '' ? 'para venda ou locação' : ($purpose === 'locacao' ? 'para alugar' : 'para comprar'), $property['bairro'], $property['cidade'], $property['codimovel'])
     : 'Consulte os imóveis disponíveis na Mundial Imóveis.';
 $socialImage = $property && $property['photos'] ? detailPhotoUrl($property, $property['photos'][0]) : null;
+$initialPhotoIndex = 0;
+if ($property && $property['photos'] && preg_match('/^(imovel|edificio)-([1-9][0-9]*)$/', $requestedPhoto, $photoMatch)) {
+    foreach ($property['photos'] as $index => $photo) {
+        if ($photo['source'] === $photoMatch[1] && (int) $photo['id'] === (int) $photoMatch[2]) {
+            $initialPhotoIndex = $index;
+            break;
+        }
+    }
+}
 if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     $socialImage = siteUrl($socialImage);
 }
@@ -165,31 +175,32 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
 
     <?php if ($property['photos']): ?>
         <?php $photoCount = count($property['photos']); ?>
-        <section class="property-gallery" data-gallery aria-label="Fotos do imóvel">
+        <section class="property-gallery" id="galeria" data-gallery data-gallery-initial-index="<?= e($initialPhotoIndex) ?>" aria-label="Fotos do imóvel">
             <div class="gallery-stage">
                 <?php foreach ($property['photos'] as $index => $photo): ?>
                     <img
-                        class="gallery-slide<?= $index === 0 ? ' is-active' : '' ?>"
+                        class="gallery-slide<?= $index === $initialPhotoIndex ? ' is-active' : '' ?>"
                         src="<?= e(detailPhotoUrl($property, $photo)) ?>"
                         alt="<?= e(($photo['type_description'] ?: $property['tipo']) . ' — foto ' . ($index + 1)) ?>"
                         data-gallery-description="<?= e($photo['type_description'] ?: '') ?>"
+                        data-photo-reference="<?= e($photo['source'] . '-' . (int) $photo['id']) ?>"
                         data-gallery-image
-                        <?= $index ? 'loading="lazy"' : '' ?>
+                        <?= $index !== $initialPhotoIndex ? 'loading="lazy"' : '' ?>
                     >
                 <?php endforeach; ?>
                 <?php if ($photoCount > 1): ?>
                     <button class="gallery-arrow gallery-prev" type="button" data-gallery-prev aria-label="Foto anterior">‹</button>
                     <button class="gallery-arrow gallery-next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
                 <?php endif; ?>
-                <span class="gallery-counter"><b data-gallery-current>1</b> / <?= $photoCount ?></span>
-                <span class="gallery-description" data-gallery-description-text<?= empty($property['photos'][0]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][0]['type_description'] ?? '') ?></span>
+                <span class="gallery-counter"><b data-gallery-current><?= e($initialPhotoIndex + 1) ?></b> / <?= $photoCount ?></span>
+                <span class="gallery-description" data-gallery-description-text<?= empty($property['photos'][$initialPhotoIndex]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][$initialPhotoIndex]['type_description'] ?? '') ?></span>
                 <button class="gallery-expand" type="button" data-gallery-expand>Ver todas as fotos</button>
             </div>
 
             <?php if ($photoCount > 1): ?>
                 <div class="gallery-thumbs" aria-label="Escolher foto">
                     <?php foreach ($property['photos'] as $index => $photo): ?>
-                        <button class="gallery-thumb<?= $index === 0 ? ' is-active' : '' ?>" type="button" data-gallery-thumb="<?= $index ?>" aria-label="Mostrar foto <?= $index + 1 ?>">
+                        <button class="gallery-thumb<?= $index === $initialPhotoIndex ? ' is-active' : '' ?>" type="button" data-gallery-thumb="<?= $index ?>" aria-label="Mostrar foto <?= $index + 1 ?>">
                             <img src="<?= e(detailPhotoUrl($property, $photo)) ?>" alt="" loading="lazy">
                         </button>
                     <?php endforeach; ?>
@@ -200,10 +211,10 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
         <dialog class="gallery-lightbox" data-gallery-lightbox aria-label="Visualizador de fotos">
             <button class="lightbox-close" type="button" data-gallery-close aria-label="Fechar galeria">×</button>
             <button class="lightbox-arrow lightbox-prev" type="button" data-gallery-prev aria-label="Foto anterior">‹</button>
-            <img data-gallery-lightbox-image src="<?= e(detailPhotoUrl($property, $property['photos'][0])) ?>" alt="<?= e($property['tipo']) ?>">
+            <img data-gallery-lightbox-image src="<?= e(detailPhotoUrl($property, $property['photos'][$initialPhotoIndex])) ?>" alt="<?= e($property['tipo']) ?>">
             <button class="lightbox-arrow lightbox-next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
-            <span class="lightbox-description" data-gallery-lightbox-description<?= empty($property['photos'][0]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][0]['type_description'] ?? '') ?></span>
-            <span class="lightbox-counter"><b data-gallery-lightbox-current>1</b> / <?= $photoCount ?></span>
+            <span class="lightbox-description" data-gallery-lightbox-description<?= empty($property['photos'][$initialPhotoIndex]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][$initialPhotoIndex]['type_description'] ?? '') ?></span>
+            <span class="lightbox-counter"><b data-gallery-lightbox-current><?= e($initialPhotoIndex + 1) ?></b> / <?= $photoCount ?></span>
         </dialog>
     <?php else: ?>
         <div class="gallery-placeholder">Imóvel sem fotos disponíveis</div>
@@ -297,7 +308,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     const lightboxImage = lightbox.querySelector('[data-gallery-lightbox-image]');
     const lightboxCurrent = lightbox.querySelector('[data-gallery-lightbox-current]');
     const lightboxDescription = lightbox.querySelector('[data-gallery-lightbox-description]');
-    let active = 0;
+    let active = Number(gallery.dataset.galleryInitialIndex || 0);
     let touchStart = 0;
 
     const show = (next) => {

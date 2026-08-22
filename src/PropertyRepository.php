@@ -577,7 +577,7 @@ final class PropertyRepository
     private function photos(int $propertyId, ?int $buildingId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT f.nome_imagem AS name, f.descricao,
+            "SELECT f.codfotoimovel AS id, f.nome_imagem AS name, f.descricao,
                     COALESCE(NULLIF(TRIM(tf.desctipofoto), ''), NULLIF(TRIM(f.descricao), '')) AS type_description,
                     'imovel' AS source
              FROM fotoimovel f
@@ -588,12 +588,12 @@ final class PropertyRepository
         $statement->execute(['property' => $propertyId]);
         $photos = $statement->fetchAll();
 
-        if ($photos !== [] || $buildingId === null) {
+        if ($buildingId === null) {
             return $photos;
         }
 
         $statement = $this->pdo->prepare(
-            "SELECT f.nome_imagem AS name, f.descricao,
+            "SELECT f.codfotoedificio AS id, f.nome_imagem AS name, f.descricao,
                     COALESCE(NULLIF(TRIM(tf.desctipofoto), ''), NULLIF(TRIM(f.descricao), '')) AS type_description,
                     'edificio' AS source
              FROM fotoedificio f
@@ -602,6 +602,6 @@ final class PropertyRepository
              ORDER BY f.ordemexibicao NULLS LAST, f.codfotoedificio"
         );
         $statement->execute(['building' => $buildingId]);
-        return $statement->fetchAll();
+        return array_merge($photos, $statement->fetchAll());
     }
 }

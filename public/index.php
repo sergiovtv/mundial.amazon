@@ -84,12 +84,18 @@ function visualPhotoPayload(array $photo, string $galleryTitle): array
         'photoId' => (int) $photo['photo_id'],
         'source' => (string) $photo['photo_source'],
         'imageUrl' => visualPhotoUrl($photo),
-        'propertyUrl' => propertyPath($photo, (string) $photo['finalidade']),
+        'propertyUrl' => visualPropertyPhotoPath($photo),
         'type' => (string) $photo['tipo'],
         'neighborhood' => (string) $photo['bairro'],
         'ariaLabel' => 'Ver ' . $photo['tipo'] . ' em ' . $photo['bairro'],
         'alt' => $galleryTitle . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro'],
     ];
+}
+
+function visualPropertyPhotoPath(array $photo): string
+{
+    $photoReference = (string) $photo['photo_source'] . '-' . (int) $photo['photo_id'];
+    return propertyPath($photo, (string) $photo['finalidade']) . '?foto=' . rawurlencode($photoReference) . '#galeria';
 }
 ?>
 <!doctype html>
@@ -193,7 +199,7 @@ function visualPhotoPayload(array $photo, string $galleryTitle): array
                 <div class="visual-mosaic visual-mosaic-<?= e((string) (($galleryIndex % 3) + 1)) ?>" data-photo-gallery="<?= e($gallery['key']) ?>">
                     <?php foreach ($gallery['photos'] as $photoIndex => $photo): ?>
                         <article class="visual-tile visual-tile-<?= e((string) (($photoIndex % 8) + 1)) ?>" data-photo-id="<?= e($photo['photo_id']) ?>" data-photo-source="<?= e($photo['photo_source']) ?>">
-                            <a class="visual-tile-link" href="<?= e(propertyPath($photo, $photo['finalidade'])) ?>" aria-label="Ver <?= e($photo['tipo']) ?> em <?= e($photo['bairro']) ?>">
+                            <a class="visual-tile-link" href="<?= e(visualPropertyPhotoPath($photo)) ?>" aria-label="Ver <?= e($photo['tipo']) ?> em <?= e($photo['bairro']) ?> nesta foto">
                                 <img src="<?= e(visualPhotoUrl($photo)) ?>" alt="<?= e($gallery['title'] . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro']) ?>" loading="lazy" decoding="async">
                                 <span class="visual-caption">
                                     <small><?= e($photo['tipo']) ?></small>

@@ -17,8 +17,18 @@ final class WatermarkedImageCache
     {
         try {
             [$source, $cached] = $this->resolvePaths($requestedPath);
-            if (!is_file($cached)) {
-                $this->generateOnce($source, $cached);
+            $orientationMarker = $cached . '.orientation-v2';
+            $checkedMarker = $cached . '.orientation-checked-v2';
+            $cachedExists = is_file($cached);
+            $staleOrientation = $cachedExists
+                && !is_file($orientationMarker)
+                && !is_file($checkedMarker)
+                && $this->hasNormalizedPixelsWithStaleOrientation($source);
+
+            if (!$cachedExists || $staleOrientation) {
+                $this->generateOnce($source, $cached, $staleOrientation, $orientationMarker, $checkedMarker);
+            } elseif (!is_file($checkedMarker)) {
+                $this->writeMarker($checkedMarker, 'checked-v2');
             }
             $this->sendFile($cached);
         } catch (InvalidArgumentException) {
@@ -63,7 +73,13 @@ final class WatermarkedImageCache
         return [$source, $cached];
     }
 
-    private function generateOnce(string $source, string $cached): void
+    private function generateOnce(
+        string $source,
+        string $cached,
+        bool $forceRefresh = false,
+        string $orientationMarker = '',
+        string $checkedMarker = '',
+    ): void
     {
         $directory = dirname($cached);
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
@@ -78,10 +94,14 @@ final class WatermarkedImageCache
 
         try {
             clearstatcache(true, $cached);
-            if (is_file($cached)) {
+            if (is_file($cached) && !$forceRefresh) {
                 return;
             }
             $this->render($source, $cached);
+            if ($forceRefresh && $orientationMarker !== '') {
+                $this->writeMarker($orientationMarker, 'normalized-v2');
+            }
+            if ($checkedMarker !== '') $this->writeMarker($checkedMarker, 'checked-v2');
         } finally {
             flock($lock, LOCK_UN);
             fclose($lock);
@@ -157,6 +177,9 @@ final class WatermarkedImageCache
         }
         $exif = @exif_read_data($source);
         $orientation = (int) ($exif['Orientation'] ?? 1);
+        if (in_array($orientation, [6, 8], true) && $this->hasNormalizedPixelsWithStaleOrientation($source, $exif)) {
+            return $image;
+        }
         $angle = match ($orientation) { 3 => 180, 6 => -90, 8 => 90, default => 0 };
         if ($angle === 0) {
             return $image;
@@ -167,6 +190,31 @@ final class WatermarkedImageCache
         }
         imagedestroy($image);
         return $rotated;
+    }
+
+    private function hasNormalizedPixelsWithStaleOrientation(string $source, ?array $exif = null): bool
+    {
+        if (!function_exists('exif_read_data')) return false;
+        $exif ??= @exif_read_data($source) ?: [];
+        $orientation = (int) ($exif['Orientation'] ?? 1);
+        if (!in_array($orientation, [6, 8], true)) return false;
+
+        $embeddedWidth = (int) ($exif['ExifImageWidth'] ?? 0);
+        $embeddedHeight = (int) ($exif['ExifImageLength'] ?? 0);
+        $size = @getimagesize($source);
+        if ($embeddedWidth < 1 || $embeddedHeight < 1 || $size === false) return false;
+
+        $embeddedLandscape = $embeddedWidth > $embeddedHeight;
+        $currentLandscape = (int) $size[0] > (int) $size[1];
+        return $embeddedLandscape !== $currentLandscape;
+    }
+
+    private function writeMarker(string $path, string $value): void
+    {
+        if (file_put_contents($path, $value, LOCK_EX) === false) {
+            throw new RuntimeException('Não foi possível registrar a versão do cache.');
+        }
+        chmod($path, 0664);
     }
 
     private function sendFile(string $file): never
