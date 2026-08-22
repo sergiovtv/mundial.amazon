@@ -17,10 +17,17 @@ services:
       DB_NAME: imobi
       DB_USER: ${MUNDIAL_APP_USER}
       DB_PASSWORD: ${MUNDIAL_APP_PASSWORD}
+      CLIENT_DB_NAME: cliente
+      CLIENT_DOCUMENT_ROOT: /var/lib/mundial/documentos
+      BOLETO_API_BASE_URL: ${BOLETO_API_BASE_URL:-http://177.200.69.64:9090/sistema/api/site_api.php}
+      BOLETO_API_KEY: ${BOLETO_API_KEY}
+      BOLETO_API_COMPANY: ${BOLETO_API_COMPANY:-sm}
+      BOLETO_API_ROUTINE: ${BOLETO_API_ROUTINE:-pdf_boleto_sicredi}
     ports:
       - "80:80"
     volumes:
       - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
+      - /var/lib/mundial/documentos:/var/lib/mundial/documentos:ro
     networks:
       - mundial_backend
     healthcheck:

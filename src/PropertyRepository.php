@@ -158,6 +158,144 @@ final class PropertyRepository
         return $statement->fetchAll();
     }
 
+    public function visualGalleries(int $limitPerGallery = 8): array
+    {
+        $limitPerGallery = max(1, min(12, $limitPerGallery));
+        $sql = "
+            WITH photo_theme(codtipofoto, theme) AS (
+                VALUES
+                    (41, 'piscinas'), (34, 'piscinas'),
+                    (16, 'jardins'), (49, 'jardins'),
+                    (84, 'vistas'),
+                    (36, 'varandas'), (65, 'varandas'), (64, 'varandas'),
+                    (46, 'gourmet'), (30, 'gourmet'), (29, 'gourmet'),
+                    (1, 'fachadas'), (4, 'fachadas'),
+                    (10, 'cozinhas'), (69, 'cozinhas')
+            ),
+            candidates AS (
+                SELECT
+                    pt.theme,
+                    i.codimovel,
+                    i.codedificio,
+                    t.desctipoimovel AS tipo,
+                    b.descbairro AS bairro,
+                    c.desccidade AS cidade,
+                    f.nome_imagem,
+                    'imovel'::text AS photo_source,
+                    COALESCE(f.dataalteracao, f.dataatualizacao, f.data) AS photo_date,
+                    CASE WHEN oi.codoperacao = 5 THEN 'venda' ELSE 'locacao' END AS finalidade
+                FROM fotoimovel f
+                JOIN photo_theme pt ON pt.codtipofoto = f.codtipofoto
+                JOIN imovel i ON i.codimovel = f.codimovel
+                JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+                JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
+                JOIN bairro b ON b.codbairro = i.codbairro
+                JOIN cidade c ON c.codcidade = b.codcidade
+                WHERE f.situacao_cadastro = 'A'
+                  AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
+                  AND i.exibesite = 'S'
+                  AND oi.codoperacao IN (4, 5)
+                  AND oi.datacancelamento IS NULL
+                  AND CASE oi.codoperacao
+                      WHEN 4 THEN COALESCE(i.valorlocacao, 0)
+                      ELSE COALESCE(i.valorvenda, 0)
+                  END > 0
+
+                UNION ALL
+
+                SELECT
+                    pt.theme,
+                    i.codimovel,
+                    i.codedificio,
+                    t.desctipoimovel AS tipo,
+                    b.descbairro AS bairro,
+                    c.desccidade AS cidade,
+                    f.nome_imagem,
+                    'edificio'::text AS photo_source,
+                    COALESCE(f.dataalteracao, f.dataatualizacao, f.data) AS photo_date,
+                    CASE WHEN oi.codoperacao = 5 THEN 'venda' ELSE 'locacao' END AS finalidade
+                FROM fotoedificio f
+                JOIN photo_theme pt ON pt.codtipofoto = f.codtipofoto
+                JOIN imovel i ON i.codedificio = f.codedificio
+                JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+                JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
+                JOIN bairro b ON b.codbairro = i.codbairro
+                JOIN cidade c ON c.codcidade = b.codcidade
+                WHERE f.situacao_cadastro = 'A'
+                  AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
+                  AND i.exibesite = 'S'
+                  AND oi.codoperacao IN (4, 5)
+                  AND oi.datacancelamento IS NULL
+                  AND CASE oi.codoperacao
+                      WHEN 4 THEN COALESCE(i.valorlocacao, 0)
+                      ELSE COALESCE(i.valorvenda, 0)
+                  END > 0
+            ),
+            unique_images AS (
+                SELECT DISTINCT ON (
+                    theme,
+                    photo_source,
+                    CASE WHEN photo_source = 'edificio' THEN codedificio ELSE codimovel END,
+                    nome_imagem
+                ) *
+                FROM candidates
+                ORDER BY
+                    theme,
+                    photo_source,
+                    CASE WHEN photo_source = 'edificio' THEN codedificio ELSE codimovel END,
+                    nome_imagem,
+                    photo_date DESC NULLS LAST,
+                    codimovel DESC
+            ),
+            unique_photos AS (
+                SELECT DISTINCT ON (theme, codimovel)
+                    *
+                FROM unique_images
+                ORDER BY theme, codimovel, photo_source DESC, photo_date DESC NULLS LAST, nome_imagem
+            ),
+            ranked AS (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY theme
+                    ORDER BY photo_date DESC NULLS LAST, codimovel DESC
+                ) AS position
+                FROM unique_photos
+            )
+            SELECT theme, codimovel, codedificio, tipo, bairro, cidade,
+                   nome_imagem, photo_source, finalidade
+            FROM ranked
+            WHERE position <= :gallery_limit
+            ORDER BY theme, position
+        ";
+
+        $statement = $this->pdo->prepare($sql);
+        $statement->bindValue(':gallery_limit', $limitPerGallery, PDO::PARAM_INT);
+        $statement->execute();
+
+        $definitions = [
+            'piscinas' => ['title' => 'Piscinas para mergulhar de cabeça', 'description' => 'Um refresco para os olhos — e talvez o seu próximo endereço.'],
+            'jardins' => ['title' => 'Jardins para respirar', 'description' => 'Verde, sombra e espaço para a vida acontecer lá fora.'],
+            'vistas' => ['title' => 'Vistas que fazem parar', 'description' => 'Janelas e varandas que transformam a paisagem em parte da casa.'],
+            'varandas' => ['title' => 'Varandas para viver lá fora', 'description' => 'Café demorado, conversa boa e um pouco mais de horizonte.'],
+            'gourmet' => ['title' => 'Espaços feitos para receber', 'description' => 'Ambientes onde reunir as pessoas já faz parte da planta.'],
+            'fachadas' => ['title' => 'Fachadas que roubam a cena', 'description' => 'A primeira impressão também pode ser inesquecível.'],
+            'cozinhas' => ['title' => 'Cozinhas que inspiram', 'description' => 'Para quem sabe que os melhores encontros começam por aqui.'],
+        ];
+        $photosByTheme = [];
+        foreach ($statement->fetchAll() as $photo) {
+            $theme = $photo['theme'];
+            if (!isset($definitions[$theme])) continue;
+            $photosByTheme[$theme][] = $photo;
+        }
+
+        $galleries = [];
+        foreach ($definitions as $theme => $definition) {
+            if (($photosByTheme[$theme] ?? []) === []) continue;
+            $galleries[] = $definition + ['key' => $theme, 'photos' => $photosByTheme[$theme]];
+        }
+
+        return $galleries;
+    }
+
     public function find(int $propertyId, string $purpose = ''): ?array
     {
         $operation = $purpose === 'locacao' ? 4 : ($purpose === 'venda' ? 5 : null);

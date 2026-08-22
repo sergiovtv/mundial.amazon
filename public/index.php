@@ -22,6 +22,7 @@ if ($filters['codigo'] !== '' && ctype_digit((string) $filters['codigo']) && (in
 $page = max(1, (int) ($_GET['pagina'] ?? 1));
 $error = null;
 $whatsappPhone = '';
+$hasFilters = array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' ? $value !== '' : $value !== 'venda', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
 
 try {
     $repository = new PropertyRepository(Database::connect());
@@ -29,11 +30,13 @@ try {
     $options = $repository->options();
     $neighborhoods = $repository->neighborhoods(ctype_digit((string) $filters['cidade']) ? (int) $filters['cidade'] : null);
     $result = $repository->search($filters, $page);
+    $visualGalleries = $hasFilters ? [] : $repository->visualGalleries();
 } catch (Throwable $exception) {
     $error = env('APP_DEBUG', 'false') === 'true' ? $exception->getMessage() : 'Não foi possível consultar os imóveis agora.';
     $options = ['types' => [], 'cities' => []];
     $neighborhoods = [];
     $result = ['items' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'priceColumn' => 'valorvenda'];
+    $visualGalleries = [];
 }
 
 function queryForPage(int $page): string
@@ -43,7 +46,6 @@ function queryForPage(int $page): string
     return '?' . http_build_query($query);
 }
 
-$hasFilters = array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' ? $value !== '' : $value !== 'venda', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
 $canonicalUrl = siteUrl('/');
 
 function propertyPhotoUrl(array $property): ?string
@@ -70,6 +72,15 @@ function propertyPhotoUrl(array $property): ?string
 
     return null;
 }
+
+function visualPhotoUrl(array $photo): string
+{
+    $baseUrl = rtrim(env('MEDIA_BASE_URL', '/fotos'), '/');
+    if ($photo['photo_source'] === 'edificio') {
+        return sprintf('%s/Edificios/%d/%s', $baseUrl, (int) $photo['codedificio'], rawurlencode((string) $photo['nome_imagem']));
+    }
+    return sprintf('%s/%d/%s', $baseUrl, (int) $photo['codimovel'], rawurlencode((string) $photo['nome_imagem']));
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -85,7 +96,7 @@ function propertyPhotoUrl(array $property): ?string
 <body>
 <header class="site-header">
     <a class="brand" href="/">Mundial <span>Imóveis</span></a>
-    <span class="environment">Ambiente <?= e(env('APP_ENV', 'local')) ?></span>
+    <a class="secondary-link" href="/cliente/">Área do cliente</a>
 </header>
 
 <main>
@@ -147,6 +158,39 @@ function propertyPhotoUrl(array $property): ?string
             <button type="submit">Buscar imóveis</button>
         </form>
     </section>
+
+    <?php if ($visualGalleries !== []): ?>
+    <section class="visual-discovery" aria-labelledby="visual-discovery-title">
+        <div class="visual-discovery-intro">
+            <p class="eyebrow">Explore com os olhos</p>
+            <h2 id="visual-discovery-title">Às vezes, a escolha começa por um detalhe.</h2>
+            <p>Passeie por ambientes reais dos nossos imóveis. Encontrou um que chamou sua atenção? É só entrar.</p>
+        </div>
+
+        <?php foreach ($visualGalleries as $galleryIndex => $gallery): ?>
+            <section class="visual-gallery" aria-labelledby="gallery-<?= e($gallery['key']) ?>">
+                <div class="visual-gallery-heading">
+                    <div>
+                        <span><?= str_pad((string) ($galleryIndex + 1), 2, '0', STR_PAD_LEFT) ?></span>
+                        <h3 id="gallery-<?= e($gallery['key']) ?>"><?= e($gallery['title']) ?></h3>
+                    </div>
+                    <p><?= e($gallery['description']) ?></p>
+                </div>
+                <div class="visual-mosaic visual-mosaic-<?= e((string) (($galleryIndex % 3) + 1)) ?>">
+                    <?php foreach ($gallery['photos'] as $photoIndex => $photo): ?>
+                        <a class="visual-tile visual-tile-<?= e((string) (($photoIndex % 8) + 1)) ?>" href="<?= e(propertyPath($photo, $photo['finalidade'])) ?>" aria-label="Ver <?= e($photo['tipo']) ?> em <?= e($photo['bairro']) ?>">
+                            <img src="<?= e(visualPhotoUrl($photo)) ?>" alt="<?= e($gallery['title'] . ' — ' . $photo['tipo'] . ' em ' . $photo['bairro']) ?>" loading="lazy" decoding="async">
+                            <span>
+                                <small><?= e($photo['tipo']) ?></small>
+                                <strong><?= e($photo['bairro']) ?></strong>
+                            </span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endforeach; ?>
+    </section>
+    <?php endif; ?>
 
     <section class="results">
         <div class="results-heading">

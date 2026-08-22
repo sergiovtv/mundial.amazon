@@ -20,6 +20,14 @@ docker exec -i postgres sh -lc \
   < ../../scripts/postgres/grant-app-data-access.sql
 ```
 
+Repita para o banco `cliente`, pois a Área do Cliente usa uma conexão separada:
+
+```bash
+docker exec -i postgres sh -lc \
+  'psql --username "$POSTGRES_USER" --dbname cliente --set app_user="$MUNDIAL_APP_USER"' \
+  < ../../scripts/postgres/grant-app-data-access.sql
+```
+
 O usuário poderá consultar e gravar dados, mas não alterar a estrutura do banco nem administrar usuários.
 
 Antes de iniciar:

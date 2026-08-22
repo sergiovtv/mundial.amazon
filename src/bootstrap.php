@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/PropertyRepository.php';
+require_once __DIR__ . '/LegacyCustomerCipher.php';
+require_once __DIR__ . '/CustomerRepository.php';
+require_once __DIR__ . '/BrevoMailer.php';
+require_once __DIR__ . '/BoletoService.php';
 
 function env(string $name, ?string $default = null): string
 {
@@ -74,4 +78,53 @@ function siteUrl(string $path = '/'): string
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
     return $scheme . '://' . ($host ?: 'localhost') . '/' . ltrim($path, '/');
+}
+
+function formatCpfCnpj(string $value): ?string
+{
+    $digits = preg_replace('/\D+/', '', $value) ?? '';
+    if (strlen($digits) === 11) {
+        return substr($digits, 0, 3) . '.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-' . substr($digits, 9, 2);
+    }
+    if (strlen($digits) === 14) {
+        return substr($digits, 0, 2) . '.' . substr($digits, 2, 3) . '.' . substr($digits, 5, 3) . '/' . substr($digits, 8, 4) . '-' . substr($digits, 12, 2);
+    }
+    return null;
+}
+
+function customerSession(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) return;
+    session_name('mundial_cliente');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/cliente',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
+
+function csrfToken(): string
+{
+    customerSession();
+    if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(24));
+    return $_SESSION['csrf'];
+}
+
+function validCsrf(): bool
+{
+    customerSession();
+    return isset($_POST['csrf'], $_SESSION['csrf']) && hash_equals((string) $_SESSION['csrf'], (string) $_POST['csrf']);
+}
+
+function requireCustomer(): array
+{
+    customerSession();
+    if (empty($_SESSION['customer']) || !is_array($_SESSION['customer'])) {
+        header('Location: /cliente/');
+        exit;
+    }
+    return $_SESSION['customer'];
 }
