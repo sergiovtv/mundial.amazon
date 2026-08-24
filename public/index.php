@@ -111,7 +111,7 @@ function visualPropertyPhotoPath(array $photo): string
     <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
-<body>
+<body class="<?= $hasFilters || $visualGalleries === [] ? 'home-mode-search' : 'home-mode-discovery' ?>">
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
@@ -152,12 +152,14 @@ function visualPropertyPhotoPath(array $photo): string
             </div>
         <?php endif; ?>
 
-        <button class="mobile-filter-toggle" type="button" aria-expanded="false" aria-controls="property-search">
-            <span>Prefere procurar do jeito tradicional?</span>
-            <strong>Usar filtros</strong>
-        </button>
+        <?php if ($visualGalleries !== []): ?>
+            <button class="mobile-filter-toggle" type="button" aria-expanded="<?= $hasFilters ? 'true' : 'false' ?>" aria-controls="property-search">
+                <span><?= $hasFilters ? 'Quer explorar de um jeito diferente?' : 'Prefere procurar do jeito tradicional?' ?></span>
+                <strong><?= $hasFilters ? 'Surpreenda-me' : 'Usar filtros' ?></strong>
+            </button>
+        <?php endif; ?>
 
-        <form class="search-panel" id="property-search" method="get">
+        <form class="search-panel<?= $hasFilters || $visualGalleries === [] ? ' is-open' : '' ?>" id="property-search" method="get">
             <label>Código do imóvel
                 <input name="codigo" inputmode="numeric" pattern="[0-9]*" value="<?= e($filters['codigo']) ?>" placeholder="Ex.: 62602">
             </label>

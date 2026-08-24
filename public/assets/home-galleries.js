@@ -3,12 +3,25 @@
 
     const filterToggle = document.querySelector('.mobile-filter-toggle');
     const searchPanel = document.querySelector('#property-search');
+    const discoveryAvailable = Boolean(document.querySelector('.visual-discovery'));
+
+    function setHomeMode(searchMode) {
+        document.body.classList.toggle('home-mode-search', searchMode);
+        document.body.classList.toggle('home-mode-discovery', !searchMode);
+        searchPanel?.classList.toggle('is-open', searchMode);
+        filterToggle?.setAttribute('aria-expanded', String(searchMode));
+
+        const label = filterToggle?.querySelector('span');
+        const action = filterToggle?.querySelector('strong');
+        if (label) label.textContent = searchMode ? 'Quer explorar de um jeito diferente?' : 'Prefere procurar do jeito tradicional?';
+        if (action) action.textContent = searchMode ? 'Surpreenda-me' : 'Usar filtros';
+    }
+
     filterToggle?.addEventListener('click', () => {
-        const open = !searchPanel?.classList.contains('is-open');
-        searchPanel?.classList.toggle('is-open', open);
-        filterToggle.setAttribute('aria-expanded', String(open));
-        filterToggle.querySelector('strong').textContent = open ? 'Fechar filtros' : 'Usar filtros';
-        if (open) window.setTimeout(() => searchPanel?.scrollIntoView({behavior: 'smooth', block: 'start'}), 80);
+        const searchMode = !document.body.classList.contains('home-mode-search') || !discoveryAvailable;
+        setHomeMode(searchMode);
+        const target = searchMode ? searchPanel : document.querySelector('.mobile-discovery-teaser');
+        window.setTimeout(() => target?.scrollIntoView({behavior: 'smooth', block: 'start'}), 80);
     });
 
     function tileMarkup(photo) {
