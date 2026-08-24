@@ -149,16 +149,21 @@ function visualPropertyPhotoPath(array $photo): string
                             <b aria-hidden="true">↗</b>
                         </span>
                     </button>
-                    <button class="home-choice-card home-choice-search" type="button" data-home-mode="search">
+                    <div class="home-choice-card home-choice-search">
                         <?php if ($searchPhoto): ?><img src="<?= e(visualPhotoUrl($searchPhoto)) ?>" alt="" decoding="async"><?php endif; ?>
-                        <span class="home-choice-shine" aria-hidden="true"></span>
-                        <span class="home-choice-content">
+                        <span class="home-choice-search-overlay" aria-hidden="true"></span>
+                        <div class="home-choice-content home-quick-search-content">
                             <small>Do seu jeito</small>
-                            <strong>Buscar com filtros</strong>
-                            <span>Escolha localização, tipo e faixa de preço</span>
-                            <b aria-hidden="true">→</b>
-                        </span>
-                    </button>
+                            <strong>Buscar imóveis</strong>
+                            <form class="home-quick-search" method="get">
+                                <label><span>Operação</span><select name="finalidade"><option value="venda">Comprar</option><option value="locacao">Alugar</option></select></label>
+                                <label><span>Tipo</span><select name="tipo"><option value="">Todos os tipos</option><?php foreach ($options['types'] as $type): ?><option value="<?= e($type['id']) ?>"><?= e($type['label']) ?></option><?php endforeach; ?></select></label>
+                                <label><span>Local</span><select name="cidade"><option value="">Todas as cidades</option><?php foreach ($options['cities'] as $city): ?><option value="<?= e($city['id']) ?>"><?= e($city['label']) ?></option><?php endforeach; ?></select></label>
+                                <button type="submit">Buscar agora <span aria-hidden="true">→</span></button>
+                            </form>
+                            <button class="home-quick-more" type="button" data-home-mode="search">Mais filtros</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
