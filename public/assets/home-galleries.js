@@ -1,27 +1,25 @@
 (() => {
     const endpoint = '/api/photo-reaction.php';
 
-    const filterToggle = document.querySelector('.mobile-filter-toggle');
     const searchPanel = document.querySelector('#property-search');
-    const discoveryAvailable = Boolean(document.querySelector('.visual-discovery'));
+    const discovery = document.querySelector('.visual-discovery');
 
-    function setHomeMode(searchMode) {
-        document.body.classList.toggle('home-mode-search', searchMode);
-        document.body.classList.toggle('home-mode-discovery', !searchMode);
-        searchPanel?.classList.toggle('is-open', searchMode);
-        filterToggle?.setAttribute('aria-expanded', String(searchMode));
+    function setHomeMode(mode) {
+        ['choice', 'search', 'discovery'].forEach(name => {
+            document.body.classList.toggle(`home-mode-${name}`, name === mode);
+        });
+        searchPanel?.classList.toggle('is-open', mode === 'search');
 
-        const label = filterToggle?.querySelector('span');
-        const action = filterToggle?.querySelector('strong');
-        if (label) label.textContent = searchMode ? 'Quer explorar de um jeito diferente?' : 'Prefere procurar do jeito tradicional?';
-        if (action) action.textContent = searchMode ? 'Surpreenda-me' : 'Usar filtros';
+        const target = mode === 'search'
+            ? searchPanel
+            : mode === 'discovery' ? discovery : document.querySelector('.home-choice');
+        target?.classList.remove('home-mode-enter');
+        window.requestAnimationFrame(() => target?.classList.add('home-mode-enter'));
+        window.setTimeout(() => target?.scrollIntoView({behavior: 'smooth', block: mode === 'choice' ? 'center' : 'start'}), 40);
     }
 
-    filterToggle?.addEventListener('click', () => {
-        const searchMode = !document.body.classList.contains('home-mode-search') || !discoveryAvailable;
-        setHomeMode(searchMode);
-        const target = searchMode ? searchPanel : document.querySelector('.mobile-discovery-teaser');
-        window.setTimeout(() => target?.scrollIntoView({behavior: 'smooth', block: 'start'}), 80);
+    document.querySelectorAll('[data-home-mode]').forEach(control => {
+        control.addEventListener('click', () => setHomeMode(control.dataset.homeMode));
     });
 
     function tileMarkup(photo) {

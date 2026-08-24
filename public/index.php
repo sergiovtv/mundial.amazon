@@ -111,7 +111,7 @@ function visualPropertyPhotoPath(array $photo): string
     <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
-<body class="<?= $hasFilters || $visualGalleries === [] ? 'home-mode-search' : 'home-mode-discovery' ?>">
+<body class="<?= $hasFilters || $visualGalleries === [] ? 'home-mode-search' : 'home-mode-choice' ?>">
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
@@ -129,33 +129,43 @@ function visualPropertyPhotoPath(array $photo): string
         </div>
 
         <?php if ($visualGalleries !== []): ?>
-            <div class="mobile-discovery-teaser" aria-label="Uma prévia do novo jeito de encontrar imóveis">
-                <div class="mobile-teaser-copy">
-                    <span>Explore com os olhos</span>
-                    <strong>Casas escolhidas pelos detalhes que encantam.</strong>
+            <?php
+            $surprisePhoto = $visualGalleries[0]['photos'][0] ?? null;
+            $searchPhoto = $visualGalleries[1]['photos'][0] ?? $visualGalleries[0]['photos'][1] ?? $surprisePhoto;
+            ?>
+            <div class="home-choice" aria-labelledby="home-choice-title">
+                <div class="home-choice-heading">
+                    <span>Comece por aqui</span>
+                    <strong id="home-choice-title">Como você quer encontrar seu imóvel?</strong>
                 </div>
-                <div class="mobile-teaser-cards">
-                    <?php foreach (array_slice($visualGalleries, 0, 3) as $teaserIndex => $teaserGallery): ?>
-                        <?php $teaserPhoto = $teaserGallery['photos'][0] ?? null; ?>
-                        <?php if ($teaserPhoto): ?>
-                            <a class="mobile-teaser-card mobile-teaser-card-<?= e($teaserIndex + 1) ?>" href="#gallery-<?= e($teaserGallery['key']) ?>">
-                                <img src="<?= e(visualPhotoUrl($teaserPhoto)) ?>" alt="<?= e($teaserGallery['title']) ?>" decoding="async">
-                                <span><?= e($teaserGallery['key'] === 'piscinas' ? 'Piscinas' : ($teaserGallery['key'] === 'jardins' ? 'Jardins' : 'Vistas')) ?></span>
-                            </a>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
+                <div class="home-choice-grid">
+                    <button class="home-choice-card home-choice-surprise" type="button" data-home-mode="discovery">
+                        <?php if ($surprisePhoto): ?><img src="<?= e(visualPhotoUrl($surprisePhoto)) ?>" alt="" decoding="async"><?php endif; ?>
+                        <span class="home-choice-shine" aria-hidden="true"></span>
+                        <span class="home-choice-content">
+                            <small>Uma experiência visual</small>
+                            <strong>Quero me surpreender</strong>
+                            <span>Explore detalhes que despertam desejo</span>
+                            <b aria-hidden="true">↗</b>
+                        </span>
+                    </button>
+                    <button class="home-choice-card home-choice-search" type="button" data-home-mode="search">
+                        <?php if ($searchPhoto): ?><img src="<?= e(visualPhotoUrl($searchPhoto)) ?>" alt="" decoding="async"><?php endif; ?>
+                        <span class="home-choice-shine" aria-hidden="true"></span>
+                        <span class="home-choice-content">
+                            <small>Do seu jeito</small>
+                            <strong>Buscar com filtros</strong>
+                            <span>Escolha localização, tipo e faixa de preço</span>
+                            <b aria-hidden="true">→</b>
+                        </span>
+                    </button>
                 </div>
-                <a class="mobile-discovery-cta" href="#descobrir">
-                    Quero me surpreender
-                    <span aria-hidden="true">↓</span>
-                </a>
             </div>
         <?php endif; ?>
 
         <?php if ($visualGalleries !== []): ?>
-            <button class="mobile-filter-toggle" type="button" aria-expanded="<?= $hasFilters ? 'true' : 'false' ?>" aria-controls="property-search">
-                <span><?= $hasFilters ? 'Quer explorar de um jeito diferente?' : 'Prefere procurar do jeito tradicional?' ?></span>
-                <strong><?= $hasFilters ? 'Surpreenda-me' : 'Usar filtros' ?></strong>
+            <button class="home-mode-back home-search-back" type="button" data-home-mode="choice">
+                <span aria-hidden="true">←</span> Escolher outra forma de buscar
             </button>
         <?php endif; ?>
 
@@ -214,6 +224,7 @@ function visualPropertyPhotoPath(array $photo): string
     <?php if ($visualGalleries !== []): ?>
     <section class="visual-discovery" id="descobrir" aria-labelledby="visual-discovery-title">
         <div class="visual-discovery-intro">
+            <button class="home-mode-back" type="button" data-home-mode="choice"><span aria-hidden="true">←</span> Escolher outra forma de buscar</button>
             <p class="eyebrow">Explore com os olhos</p>
             <h2 id="visual-discovery-title">Às vezes, a escolha começa por um detalhe.</h2>
             <p>Passeie por ambientes reais dos nossos imóveis. Encontrou um que chamou sua atenção? É só entrar.</p>
