@@ -97,6 +97,13 @@ function visualPropertyPhotoPath(array $photo): string
     $photoReference = (string) $photo['photo_source'] . '-' . (int) $photo['photo_id'];
     return propertyPath($photo, (string) $photo['finalidade']) . '?foto=' . rawurlencode($photoReference) . '#galeria';
 }
+
+$heroImage = null;
+if ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
+    $heroImage = visualPhotoUrl($visualGalleries[0]['photos'][0]);
+} elseif (isset($result['items'][0])) {
+    $heroImage = propertyPhotoUrl($result['items'][0]);
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -111,21 +118,27 @@ function visualPropertyPhotoPath(array $photo): string
     <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
-<body class="<?= $hasFilters || $visualGalleries === [] ? 'home-mode-search' : 'home-mode-choice' ?>">
+<body class="site-v2 <?= $hasFilters ? 'listing-page' : 'home-page' ?>">
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
     </a>
-    <a class="secondary-link" href="/cliente/">Área do cliente</a>
+    <nav class="site-nav" aria-label="Navegação principal">
+        <a href="/">Home</a>
+        <a href="/?finalidade=venda">Comprar</a>
+        <a href="/?finalidade=locacao">Alugar</a>
+        <a href="#imoveis">Imóveis</a>
+        <a class="nav-client" href="/cliente/">Área do cliente</a>
+    </nav>
 </header>
 
 <main>
-    <section class="hero">
+    <section class="hero"<?= $heroImage ? ' style="--hero-image:url(\'' . e($heroImage) . '\')"' : '' ?>>
         <div>
-            <p class="eyebrow">Ribeirão Preto e região</p>
-            <h1>Um novo jeito de encontrar seu lugar.</h1>
-            <p class="hero-desktop-copy">Busque entre imóveis reais da Mundial com filtros rápidos e informações objetivas.</p>
-            <p class="hero-mobile-copy">Antes dos metros quadrados, escolha aquilo que faz seus olhos brilharem.</p>
+            <p class="eyebrow">Mundial Imóveis</p>
+            <h1>Seu próximo endereço começa aqui.</h1>
+            <p class="hero-desktop-copy">Imóveis para comprar e alugar em Ribeirão Preto e região.</p>
+            <p class="hero-mobile-copy">Encontre seu imóvel em Ribeirão Preto e região.</p>
         </div>
 
         <?php if ($visualGalleries !== []): ?>
@@ -174,9 +187,15 @@ function visualPropertyPhotoPath(array $photo): string
             </button>
         <?php endif; ?>
 
-        <form class="search-panel<?= $hasFilters || $visualGalleries === [] ? ' is-open' : '' ?>" id="property-search" method="get">
+        <div class="purpose-tabs" role="navigation" aria-label="Finalidade do imóvel">
+            <a class="<?= $filters['finalidade'] === 'locacao' ? 'is-active' : '' ?>" href="/?finalidade=locacao">Alugar</a>
+            <a class="<?= $filters['finalidade'] === 'venda' ? 'is-active' : '' ?>" href="/?finalidade=venda">Comprar</a>
+            <a href="#codigo-imovel">Buscar por código</a>
+        </div>
+
+        <form class="search-panel is-open" id="property-search" method="get">
             <label>Código do imóvel
-                <input name="codigo" inputmode="numeric" pattern="[0-9]*" value="<?= e($filters['codigo']) ?>" placeholder="Ex.: 62602">
+                <input id="codigo-imovel" name="codigo" inputmode="numeric" pattern="[0-9]*" value="<?= e($filters['codigo']) ?>" placeholder="Ex.: 62602">
             </label>
             <label>Finalidade
                 <select name="finalidade">
@@ -227,7 +246,7 @@ function visualPropertyPhotoPath(array $photo): string
     </section>
 
     <?php if ($visualGalleries !== []): ?>
-    <section class="visual-discovery" id="descobrir" aria-labelledby="visual-discovery-title">
+    <section class="visual-discovery" id="descobrir" aria-labelledby="visual-discovery-title" hidden>
         <div class="visual-discovery-intro">
             <button class="home-mode-back" type="button" data-home-mode="choice"><span aria-hidden="true">←</span> Escolher outra forma de buscar</button>
             <p class="eyebrow">Explore com os olhos</p>
@@ -271,11 +290,11 @@ function visualPropertyPhotoPath(array $photo): string
     </section>
     <?php endif; ?>
 
-    <section class="results">
+    <section class="results" id="imoveis">
         <div class="results-heading">
             <div>
-                <p class="eyebrow">Resultado da busca</p>
-                <h2><?= number_format($result['total'], 0, ',', '.') ?> imóveis encontrados</h2>
+                <p class="eyebrow"><?= $hasFilters ? 'Resultado da busca' : 'Seleção Mundial' ?></p>
+                <h2><?= $hasFilters ? number_format($result['total'], 0, ',', '.') . ' imóveis encontrados' : 'Imóveis em destaque' ?></h2>
             </div>
             <a href="/">Limpar filtros</a>
         </div>

@@ -142,12 +142,17 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
-<body>
+<body class="site-v2 detail-v2">
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
     </a>
-    <a class="back-link" href="/">← Voltar para a busca</a>
+    <nav class="site-nav" aria-label="Navegação principal">
+        <a href="/">Home</a>
+        <a href="/?finalidade=venda">Comprar</a>
+        <a href="/?finalidade=locacao">Alugar</a>
+        <a class="nav-client" href="/cliente/">Área do cliente</a>
+    </nav>
 </header>
 
 <main class="detail-page">
