@@ -1,0 +1,17 @@
+name: mundial-arquivos
+
+services:
+  sftp:
+    image: atmoz/sftp:debian
+    container_name: mundial-sftp
+    restart: unless-stopped
+    command: ${SFTP_USERS:?defina SFTP_USERS no .env}
+    ports:
+      - "${SFTP_PUBLISH_ADDRESS:-0.0.0.0}:${SFTP_PORT:-2222}:22"
+    volumes:
+      - ${SFTP_HOST_KEYS_DIR:-/var/lib/mundial/sftp/host-keys}/ssh_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key:ro
+      - ${SFTP_HOST_KEYS_DIR:-/var/lib/mundial/sftp/host-keys}/ssh_host_rsa_key:/etc/ssh/ssh_host_rsa_key:ro
+      - /var/lib/mundial/media/_fotos_1020304050:/home/mundial/fotos
+      - /var/lib/mundial/documentos:/home/mundial/documentos
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
