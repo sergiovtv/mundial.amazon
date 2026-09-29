@@ -33,10 +33,11 @@ cópia correspondente em `CacheFotos` para que a marca d'água seja gerada de no
    ssh-keygen -t rsa -b 4096 -N '' -f /var/lib/mundial/sftp/host-keys/ssh_host_rsa_key
    ```
 
-3. Dê ao UID/GID `1001` (definido em `SFTP_USERS`) permissão de escrita nas pastas:
+3. Dê ao UID/GID `1002` (`mundial_robot`, dono atual das fotos e definido em
+   `SFTP_USERS`) permissão de escrita nas pastas:
 
    ```bash
-   chown -R 1001:1001 /var/lib/mundial/media/_fotos_1020304050 /var/lib/mundial/documentos
+   chown -R 1002:1002 /var/lib/mundial/media/_fotos_1020304050 /var/lib/mundial/documentos
    chmod -R u+rwX,go+rX /var/lib/mundial/media/_fotos_1020304050 /var/lib/mundial/documentos
    ```
 

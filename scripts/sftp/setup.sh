@@ -8,7 +8,7 @@ STACK_DIR="$REPO_DIR/stacks/arquivos"
 KEYS_DIR=/var/lib/mundial/sftp/host-keys
 FOTOS_DIR=/var/lib/mundial/media/_fotos_1020304050
 DOCS_DIR=/var/lib/mundial/documentos
-SFTP_UID=1001
+SFTP_UID=1002
 PORT=2222
 
 if [[ $EUID -ne 0 ]]; then
@@ -23,8 +23,14 @@ install -d -m 0700 "$KEYS_DIR"
 install -d "$FOTOS_DIR" "$DOCS_DIR"
 echo "Donos atuais (antes do ajuste):"
 ls -ldn "$FOTOS_DIR" "$DOCS_DIR"
-chown -R "$SFTP_UID:$SFTP_UID" "$FOTOS_DIR" "$DOCS_DIR"
-chmod -R u+rwX,go+rX "$FOTOS_DIR" "$DOCS_DIR"
+# Só ajusta pastas cujo dono ainda não é o usuário do SFTP (evita varrer
+# centenas de milhares de fotos que já pertencem ao mundial_robot).
+for dir in "$FOTOS_DIR" "$DOCS_DIR"; do
+  if [[ $(stat -c %u "$dir") != "$SFTP_UID" ]]; then
+    chown -R "$SFTP_UID:$SFTP_UID" "$dir"
+    chmod -R u+rwX,go+rX "$dir"
+  fi
+done
 
 PASSWORD=""
 if [[ ! -f $STACK_DIR/.env ]]; then
