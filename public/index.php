@@ -119,6 +119,17 @@ if (!empty($heroPhoto)) {
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta name="description" content="Imóveis à venda e para locação em Ribeirão Preto e região. Encontre casas, apartamentos e terrenos na Mundial Imóveis.">
     <link rel="canonical" href="<?= e($canonicalUrl) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Mundial Imóveis">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:url" content="<?= e($canonicalUrl) ?>">
+    <meta property="og:title" content="Mundial Imóveis | Seu próximo endereço começa aqui">
+    <meta property="og:description" content="Imóveis para comprar e alugar em Ribeirão Preto e região.">
+    <meta property="og:image" content="<?= e(siteUrl('/img/site/compartilhar.jpg')) ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Família feliz em casa com o logo da Mundial Imóveis">
+    <meta name="twitter:card" content="summary_large_image">
     <?php if ($hasFilters): ?><meta name="robots" content="noindex,follow"><?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
