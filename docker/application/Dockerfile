@@ -27,7 +27,7 @@ RUN apt-get update \
         sockets \
         xsl \
         zip \
-    && a2enmod rewrite headers expires \
+    && a2enmod rewrite headers expires remoteip \
     && rm -rf /var/lib/apt/lists/*
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public

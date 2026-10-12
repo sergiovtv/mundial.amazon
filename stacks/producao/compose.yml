@@ -26,8 +26,16 @@ services:
       BOLETO_API_COMPANY: ${BOLETO_API_COMPANY:-sm}
       BOLETO_API_ROUTINE: ${BOLETO_API_ROUTINE:-pdf_boleto_sicredi}
       ZAP_LEAD_KEY: ${ZAP_LEAD_KEY:-}
-    ports:
-      - "80:80"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mundial.rule=Host(`mundialimoveis.com.br`) || Host(`www.mundialimoveis.com.br`)
+      - traefik.http.routers.mundial.entrypoints=websecure
+      - traefik.http.routers.mundial.tls=true
+      - traefik.http.routers.mundial.middlewares=mundial-www
+      - traefik.http.middlewares.mundial-www.redirectregex.regex=^https://www\.mundialimoveis\.com\.br/(.*)
+      - traefik.http.middlewares.mundial-www.redirectregex.replacement=https://mundialimoveis.com.br/$${1}
+      - traefik.http.middlewares.mundial-www.redirectregex.permanent=true
+      - traefik.http.services.mundial.loadbalancer.server.port=80
     volumes:
       - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
       - /var/lib/mundial/media/CacheFotos:/var/www/html/public/cache
@@ -39,6 +47,7 @@ services:
       - /var/lib/mundial/media/chavesnamao:/var/www/html/public/chavesnamao:ro
     networks:
       - mundial_backend
+      - mundial_web
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1/healthz.php"]
       interval: 10s
@@ -50,4 +59,6 @@ services:
 
 networks:
   mundial_backend:
+    external: true
+  mundial_web:
     external: true

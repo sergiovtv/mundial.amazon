@@ -1,7 +1,8 @@
 # Aplicação Mundial em produção
 
-Esta stack publica a aplicação PHP na porta 80 e acessa o PostgreSQL exclusivamente
-pela rede Docker interna `mundial_backend`.
+Esta stack executa a aplicação PHP atrás do Traefik (`stacks/traefik`), que recebe as
+portas 80 e 443 e encaminha o tráfego pela rede Docker `mundial_web`. O PostgreSQL é
+acessado exclusivamente pela rede interna `mundial_backend`.
 
 No servidor, execute usando o arquivo de variáveis já protegido da stack PostgreSQL:
 

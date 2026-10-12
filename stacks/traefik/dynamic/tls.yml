@@ -1,0 +1,12 @@
+# Certificado usado enquanto o Let's Encrypt ainda não emitiu o próprio (ex.: logo após a
+# troca do DNS). Depois da emissão automática, o Traefik passa a usar o certificado do
+# resolvedor "letsencrypt" e este arquivo vira apenas contingência.
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/fullchain.pem
+        keyFile: /certs/privkey.pem
+  options:
+    default:
+      minVersion: VersionTLS12
