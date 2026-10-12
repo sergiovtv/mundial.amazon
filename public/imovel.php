@@ -190,6 +190,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
                         data-gallery-description="<?= e($photo['type_description'] ?: '') ?>"
                         data-photo-reference="<?= e($photo['source'] . '-' . (int) $photo['id']) ?>"
                         data-gallery-image
+                        draggable="false"
                         <?= $index !== $initialPhotoIndex ? 'loading="lazy"' : '' ?>
                     >
                 <?php endforeach; ?>
@@ -216,7 +217,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
         <dialog class="gallery-lightbox" data-gallery-lightbox aria-label="Visualizador de fotos">
             <button class="lightbox-close" type="button" data-gallery-close aria-label="Fechar galeria">×</button>
             <button class="lightbox-arrow lightbox-prev" type="button" data-gallery-prev aria-label="Foto anterior">‹</button>
-            <img data-gallery-lightbox-image src="<?= e(detailPhotoUrl($property, $property['photos'][$initialPhotoIndex])) ?>" alt="<?= e($property['tipo']) ?>">
+            <img data-gallery-lightbox-image draggable="false" src="<?= e(detailPhotoUrl($property, $property['photos'][$initialPhotoIndex])) ?>" alt="<?= e($property['tipo']) ?>">
             <button class="lightbox-arrow lightbox-next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
             <span class="lightbox-description" data-gallery-lightbox-description<?= empty($property['photos'][$initialPhotoIndex]['type_description']) ? ' hidden' : '' ?>><?= e($property['photos'][$initialPhotoIndex]['type_description'] ?? '') ?></span>
             <span class="lightbox-counter"><b data-gallery-lightbox-current><?= e($initialPhotoIndex + 1) ?></b> / <?= $photoCount ?></span>
@@ -314,7 +315,8 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     const lightboxCurrent = lightbox.querySelector('[data-gallery-lightbox-current]');
     const lightboxDescription = lightbox.querySelector('[data-gallery-lightbox-description]');
     let active = Number(gallery.dataset.galleryInitialIndex || 0);
-    let touchStart = 0;
+    let swipedAt = 0;
+    const justSwiped = () => Date.now() - swipedAt < 400;
 
     const show = (next) => {
         active = (next + slides.length) % slides.length;
@@ -335,19 +337,35 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     document.querySelectorAll('[data-gallery-prev]').forEach(button => button.addEventListener('click', () => show(active - 1)));
     document.querySelectorAll('[data-gallery-next]').forEach(button => button.addEventListener('click', () => show(active + 1)));
     thumbs.forEach(button => button.addEventListener('click', () => show(Number(button.dataset.galleryThumb))));
-    slides.forEach(slide => slide.addEventListener('click', () => lightbox.showModal()));
+    slides.forEach(slide => slide.addEventListener('click', () => { if (!justSwiped()) lightbox.showModal(); }));
     gallery.querySelector('[data-gallery-expand]').addEventListener('click', () => lightbox.showModal());
     lightbox.querySelector('[data-gallery-close]').addEventListener('click', () => lightbox.close());
-    lightbox.addEventListener('click', event => { if (event.target === lightbox) lightbox.close(); });
+    lightbox.addEventListener('click', event => { if (event.target === lightbox && !justSwiped()) lightbox.close(); });
     lightbox.addEventListener('keydown', event => {
         if (event.key === 'ArrowLeft') show(active - 1);
         if (event.key === 'ArrowRight') show(active + 1);
     });
-    gallery.addEventListener('touchstart', event => touchStart = event.changedTouches[0].clientX, {passive: true});
-    gallery.addEventListener('touchend', event => {
-        const distance = event.changedTouches[0].clientX - touchStart;
-        if (Math.abs(distance) > 45) show(active + (distance < 0 ? 1 : -1));
-    }, {passive: true});
+    // Arrastar para os lados (dedo ou mouse) troca a foto na galeria e na tela cheia.
+    const enableSwipe = (element) => {
+        let start = null;
+        element.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.target.closest('button')) return;
+            start = {x: event.clientX, y: event.clientY};
+        });
+        element.addEventListener('pointerup', event => {
+            if (!start) return;
+            const dx = event.clientX - start.x;
+            const dy = event.clientY - start.y;
+            start = null;
+            if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+                swipedAt = Date.now();
+                show(active + (dx < 0 ? 1 : -1));
+            }
+        });
+        element.addEventListener('pointercancel', () => start = null);
+    };
+    enableSwipe(gallery.querySelector('.gallery-stage'));
+    enableSwipe(lightbox);
 })();
 </script>
 <?php endif; ?>
