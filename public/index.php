@@ -32,7 +32,6 @@ try {
     $neighborhoods = $repository->neighborhoods(ctype_digit((string) $filters['cidade']) ? (int) $filters['cidade'] : null);
     $result = $repository->search($filters, $page);
     $visualGalleries = $hasFilters ? [] : $repository->visualGalleries(8, $photoVisitorHash);
-    $heroPhoto = $hasFilters ? null : $repository->heroPhoto();
 } catch (Throwable $exception) {
     $error = env('APP_DEBUG', 'false') === 'true' ? $exception->getMessage() : 'Não foi possível consultar os imóveis agora.';
     $options = ['types' => [], 'cities' => []];
@@ -100,11 +99,20 @@ function visualPropertyPhotoPath(array $photo): string
 }
 
 $heroImage = null;
-if (!empty($heroPhoto)) {
-    // Sem marca d'água; o parâmetro muda quando o imóvel do fundo muda.
-    $heroImage = '/hero.php?v=' . rawurlencode((int) $heroPhoto['codimovel'] . '-' . $heroPhoto['nome_imagem']);
-} elseif ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
-    $heroImage = visualPhotoUrl($visualGalleries[0]['photos'][0]);
+$heroStyle = '';
+if (!$hasFilters) {
+    // Fotos fixas (Unsplash, licença de uso comercial) em rodízio. O foco indica onde estão
+    // as pessoas, para o recorte do quadro da foto mantê-las visíveis.
+    $heroBackgrounds = [
+        ['casal-frente-casa.jpg', '62% 82%'],
+        ['familia-sofa.jpg', '50% 35%'],
+        ['familia-quintal-cachorro.jpg', '38% 62%'],
+        ['crianca-bracos-abertos.jpg', '45% 40%'],
+        ['casal-bebe-planta.jpg', '50% 35%'],
+    ];
+    [$heroFile, $heroFocus] = $heroBackgrounds[array_rand($heroBackgrounds)];
+    $heroImage = '/img/site/fundo/' . $heroFile;
+    $heroStyle = '; --hero-focus:' . $heroFocus;
 } elseif (isset($result['items'][0])) {
     $heroImage = propertyPhotoUrl($result['items'][0]);
 }
@@ -148,13 +156,14 @@ if (!empty($heroPhoto)) {
 </header>
 
 <main>
-    <section class="hero"<?= $heroImage ? ' style="--hero-image:url(\'' . e($heroImage) . '\')"' : '' ?>>
+    <section class="hero"<?= $heroImage ? ' style="--hero-image:url(\'' . e($heroImage) . '\')' . e($heroStyle) . '"' : '' ?>>
         <div>
             <p class="eyebrow">Mundial Imóveis</p>
             <h1>Seu próximo endereço começa aqui.</h1>
             <p class="hero-desktop-copy">Imóveis para comprar e alugar em Ribeirão Preto e região.</p>
             <p class="hero-mobile-copy">Encontre seu imóvel em Ribeirão Preto e região.</p>
         </div>
+        <?php if (!$hasFilters && $heroImage): ?><div class="hero-photo" aria-hidden="true"></div><?php endif; ?>
 
         <?php if ($visualGalleries !== []): ?>
             <?php
@@ -251,10 +260,10 @@ if (!empty($heroPhoto)) {
                 </select>
             </label>
             <label>Preço mínimo
-                <input name="preco_min" inputmode="numeric" value="<?= e($filters['preco_min']) ?>" placeholder="R$ 0">
+                <input name="preco_min" inputmode="numeric" autocomplete="off" data-money-mask value="<?= e($filters['preco_min']) ?>" placeholder="R$ 0">
             </label>
             <label>Preço máximo
-                <input name="preco_max" inputmode="numeric" value="<?= e($filters['preco_max']) ?>" placeholder="Sem limite">
+                <input name="preco_max" inputmode="numeric" autocomplete="off" data-money-mask value="<?= e($filters['preco_max']) ?>" placeholder="Sem limite">
             </label>
             <button type="submit">Buscar imóveis</button>
         </form>

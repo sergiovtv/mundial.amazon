@@ -466,6 +466,22 @@ button:hover { background: var(--red-dark); }
 .site-v2 .hero-mobile-copy { color: inherit !important; opacity: .9; }
 .site-v2 .hero-desktop-copy, .site-v2 .hero-mobile-copy { text-shadow: 0 1px 10px rgba(0, 0, 0, .45); }
 .site-v2 .home-choice, .site-v2 .home-mode-back { display: none !important; }
+
+/* Home: foto da família inteira ao lado da busca; atrás do conteúdo, a mesma foto desfocada. */
+.home-page .hero { background-image: none; background-color: #1d251d; overflow: hidden; }
+.home-page .hero::before { content: ''; position: absolute; inset: -60px; z-index: -2; background: var(--hero-image) center / cover; filter: blur(34px) brightness(.5) saturate(1.15); }
+.home-page .hero::after { background: linear-gradient(90deg, rgba(13,20,14,.55), rgba(13,20,14,.15)); }
+.home-page .hero-photo { display: none; }
+.home-page .hero:has(.hero-photo) { grid-template-columns: minmax(0, 1.25fr) minmax(0, .95fr); grid-template-rows: auto auto auto; align-content: center; gap: 0 3.2vw; }
+.home-page .hero:has(.hero-photo) > div:first-child { grid-column: 1; grid-row: 1; max-width: none; margin-bottom: 26px; }
+.home-page .hero:has(.hero-photo) .purpose-tabs { grid-column: 1; grid-row: 2; }
+.home-page .hero:has(.hero-photo) .search-panel { grid-column: 1; grid-row: 3; }
+.home-page .hero .hero-photo { display: block; grid-column: 2; grid-row: 1 / 4; align-self: stretch; min-height: 440px; background: var(--hero-image) var(--hero-focus, center) / cover; border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+@media (max-width: 960px) {
+    .home-page .hero:has(.hero-photo) { grid-template-columns: 1fr; }
+    .home-page .hero:has(.hero-photo) > div:first-child, .home-page .hero:has(.hero-photo) .purpose-tabs, .home-page .hero:has(.hero-photo) .search-panel { grid-column: 1; grid-row: auto; }
+    .home-page .hero .hero-photo { grid-column: 1; grid-row: 1; min-height: 0; height: 320px; margin-bottom: 26px; }
+}
 .purpose-tabs { width: 100%; padding: 0 14px; display: flex; grid-column: 2; align-self: end; gap: 4px; position: relative; z-index: 2; }
 .purpose-tabs a { padding: 14px 18px; color: rgba(255,255,255,.78); border-radius: 3px 3px 0 0; font-size: .82rem; text-decoration: none; }
 .purpose-tabs a.is-active { color: #30382f; background: var(--v2-green); }
@@ -524,7 +540,8 @@ button:hover { background: var(--red-dark); }
     .site-v2 .site-header { min-height: 68px; padding: 0 18px; }
     .site-v2 .brand img { height: 52px; }
     .site-nav .nav-client { padding-left: 0; border: 0; font-size: .68rem; }
-    .home-page .hero { min-height: 760px; padding: 125px 18px 34px; background-position: 58% center; }
+    .home-page .hero { min-height: 0; padding: 92px 18px 34px; }
+    .home-page .hero .hero-photo { height: 250px; grid-row: 1; margin-bottom: 6px; }
     .site-v2 .hero h1 { max-width: 340px; font-size: 3.4rem; }
     .purpose-tabs { padding: 0; overflow-x: auto; }
     .purpose-tabs a { padding: 12px 14px; white-space: nowrap; }

@@ -66,7 +66,7 @@ final class PropertyRepository
         $where[] = "COALESCE({$priceColumn}, 0) > 0";
 
         foreach (['preco_min' => '>=', 'preco_max' => '<='] as $key => $operator) {
-            $raw = str_replace(['.', ','], ['', '.'], (string) ($filters[$key] ?? ''));
+            $raw = str_replace(',', '.', preg_replace('/[^\d,]/', '', (string) ($filters[$key] ?? '')));
             if ($raw !== '' && is_numeric($raw)) {
                 $where[] = "{$priceColumn} {$operator} :{$key}";
                 $params[$key] = (float) $raw;
@@ -156,28 +156,6 @@ final class PropertyRepository
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
         return $statement->fetchAll();
-    }
-
-    /** Foto de piscina do imóvel residencial à venda de maior valor, usada no fundo da home. */
-    public function heroPhoto(): ?array
-    {
-        $statement = $this->pdo->query(
-            "SELECT 'imovel' AS photo_source, i.codimovel, i.codedificio, f.nome_imagem
-               FROM fotoimovel f
-               JOIN imovel i ON i.codimovel = f.codimovel
-               JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
-                AND oi.codoperacao = 5 AND oi.datacancelamento IS NULL
-               JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
-              WHERE f.codtipofoto IN (41, 34)
-                AND f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
-                AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
-                AND t.desctipoimovel IN ('Casa', 'Apartamento', 'Loft')
-                AND i.exibesite = 'S' AND COALESCE(i.valorvenda, 0) > 0
-              ORDER BY i.valorvenda DESC, i.codimovel, f.ordemexibicao NULLS LAST, f.codfotoimovel
-              LIMIT 1"
-        );
-        $photo = $statement->fetch();
-        return $photo ?: null;
     }
 
     public function visualGalleries(int $limitPerGallery = 8, ?string $visitorHash = null): array
