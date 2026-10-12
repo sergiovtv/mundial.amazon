@@ -541,13 +541,9 @@ final class PropertyRepository
     public function createInquiry(array $property, string $purpose, array $data): int
     {
         $operation = $purpose === 'locacao' ? 4 : 5;
-        $companyQuery = $this->pdo->prepare(
-            "SELECT codempresa FROM operacaoimovel
-             WHERE codimovel = :property AND codoperacao = :operation AND datacancelamento IS NULL
-             ORDER BY datainicio DESC NULLS LAST LIMIT 1"
-        );
-        $companyQuery->execute(['property' => (int) $property['codimovel'], 'operation' => $operation]);
-        $company = $companyQuery->fetchColumn();
+        // Mesmo formato do formulário do site antigo, que o ERP importa: empresa Mundial (2),
+        // atendimento genérico, telefone também em atendidofone2 e referência do imóvel na mensagem.
+        $message = (int) $property['codimovel'] . ' / ' . $data['message'];
         $duplicate = $this->pdo->prepare(
             "SELECT codatendimento
              FROM atendimento
@@ -572,25 +568,25 @@ final class PropertyRepository
 
         $statement = $this->pdo->prepare(
             "INSERT INTO atendimento (
-                dataatendimento, horaatendimento, atendidonome, atendidofone1,
+                dataatendimento, horaatendimento, atendidonome, atendidofone1, atendidofone2,
                 atendidoemail, observacao, codoperacao, codimovel, codedificio,
                 codempresa, atendimentogenerico
              ) VALUES (
-                CURRENT_DATE, CURRENT_TIME, :name, :phone,
+                CURRENT_DATE, LOCALTIME, :name, :phone, :phone_secondary,
                 :email, :message, :operation, :property, :building,
-                :company, 'N'
+                2, 'S'
              )
              RETURNING codatendimento"
         );
         $statement->execute([
             'name' => $data['name'],
             'phone' => $data['phone'],
+            'phone_secondary' => $data['phone'],
             'email' => $data['email'],
-            'message' => $data['message'],
+            'message' => $message,
             'operation' => $operation,
             'property' => (int) $property['codimovel'],
             'building' => $property['codedificio'] ?: null,
-            'company' => $company ?: (int) env('COMPANY_ID', '1'),
         ]);
 
         return (int) $statement->fetchColumn();
