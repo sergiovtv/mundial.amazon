@@ -28,10 +28,12 @@ final class PropertyRepository
             )->fetchAll(),
             'cities' => $this->pdo->query(
                 "SELECT DISTINCT c.codcidade AS id, c.desccidade AS label
-                 FROM cidade c
-                 JOIN bairro b ON b.codcidade = c.codcidade
-                 JOIN imovel i ON i.codbairro = b.codbairro
+                 FROM imovel i
+                 " . self::PURPOSES_JOIN . "
+                 JOIN bairro b ON b.codbairro = i.codbairro
+                 JOIN cidade c ON c.codcidade = b.codcidade
                  WHERE i.exibesite = 'S'
+                   AND " . self::PURPOSE_ACTIVE . "
                  ORDER BY c.desccidade"
             )->fetchAll(),
         ];
@@ -151,9 +153,11 @@ final class PropertyRepository
     public function neighborhoods(?int $cityId): array
     {
         $sql = "SELECT DISTINCT b.codbairro AS id, b.descbairro AS label
-                FROM bairro b
-                JOIN imovel i ON i.codbairro = b.codbairro
-                WHERE i.exibesite = 'S'";
+                FROM imovel i
+                " . self::PURPOSES_JOIN . "
+                JOIN bairro b ON b.codbairro = i.codbairro
+                WHERE i.exibesite = 'S'
+                  AND " . self::PURPOSE_ACTIVE;
         $params = [];
 
         if ($cityId !== null) {
