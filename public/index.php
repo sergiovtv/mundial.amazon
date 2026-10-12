@@ -121,7 +121,7 @@ if ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
 <body class="site-v2 <?= $hasFilters ? 'listing-page' : 'home-page' ?>">
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
-        <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">
+        <img src="/img/site/logos/<?= $hasFilters ? 'logo.svg' : 'logo-claro.svg' ?>" alt="Mundial Imóveis">
     </a>
     <nav class="site-nav" aria-label="Navegação principal">
         <a href="/">Home</a>
