@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 final class PropertyRepository
 {
+    // Mesma regra do site antigo: a finalidade vale quando o imóvel tem valor e não há
+    // cancelamento pendente. A tabela operacaoimovel não é confiável para isso.
+    private const PURPOSES_JOIN = "
+        CROSS JOIN LATERAL (VALUES
+            (4, i.valorlocacao, i.cancelpendenteloc),
+            (5, i.valorvenda, i.cancelpendentevendas)
+        ) AS oi(codoperacao, valor, cancelpendente)
+    ";
+    private const PURPOSE_ACTIVE = "COALESCE(oi.valor, 0) > 0 AND COALESCE(oi.cancelpendente, 'N') <> 'S'";
+
     public function __construct(private readonly PDO $pdo)
     {
     }
@@ -43,7 +53,7 @@ final class PropertyRepository
 
     public function search(array $filters, int $page = 1, int $perPage = 12): array
     {
-        $where = ["i.exibesite = 'S'", 'oi.datacancelamento IS NULL'];
+        $where = ["i.exibesite = 'S'", self::PURPOSE_ACTIVE];
         $params = [];
 
         $operation = ($filters['finalidade'] ?? 'venda') === 'locacao' ? 4 : 5;
@@ -63,7 +73,6 @@ final class PropertyRepository
         }
 
         $priceColumn = $operation === 4 ? 'i.valorlocacao' : 'i.valorvenda';
-        $where[] = "COALESCE({$priceColumn}, 0) > 0";
 
         foreach (['preco_min' => '>=', 'preco_max' => '<='] as $key => $operator) {
             $raw = str_replace(',', '.', preg_replace('/[^\d,]/', '', (string) ($filters[$key] ?? '')));
@@ -76,7 +85,7 @@ final class PropertyRepository
         $whereSql = implode(' AND ', $where);
         $fromSql = "
             FROM imovel i
-            JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+            " . self::PURPOSES_JOIN . "
             JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
             JOIN bairro b ON b.codbairro = i.codbairro
             JOIN cidade c ON c.codcidade = b.codcidade
@@ -220,7 +229,7 @@ final class PropertyRepository
                 FROM fotoimovel f
                 JOIN photo_theme pt ON pt.codtipofoto = f.codtipofoto
                 JOIN imovel i ON i.codimovel = f.codimovel
-                JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+                " . self::PURPOSES_JOIN . "
                 JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
@@ -228,12 +237,7 @@ final class PropertyRepository
                 WHERE f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
-                  AND oi.codoperacao IN (4, 5)
-                  AND oi.datacancelamento IS NULL
-                  AND CASE oi.codoperacao
-                      WHEN 4 THEN COALESCE(i.valorlocacao, 0)
-                      ELSE COALESCE(i.valorvenda, 0)
-                  END > 0
+                  AND " . self::PURPOSE_ACTIVE . "
                   {$propertyFeedbackWhere}
 
                 UNION ALL
@@ -254,7 +258,7 @@ final class PropertyRepository
                 FROM fotoedificio f
                 JOIN photo_theme pt ON pt.codtipofoto = f.codtipofoto
                 JOIN imovel i ON i.codedificio = f.codedificio
-                JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+                " . self::PURPOSES_JOIN . "
                 JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
@@ -262,12 +266,7 @@ final class PropertyRepository
                 WHERE f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
-                  AND oi.codoperacao IN (4, 5)
-                  AND oi.datacancelamento IS NULL
-                  AND CASE oi.codoperacao
-                      WHEN 4 THEN COALESCE(i.valorlocacao, 0)
-                      ELSE COALESCE(i.valorvenda, 0)
-                  END > 0
+                  AND " . self::PURPOSE_ACTIVE . "
                   {$buildingFeedbackWhere}
             ),
             unique_images AS (
@@ -398,7 +397,7 @@ final class PropertyRepository
     public function find(int $propertyId, string $purpose = ''): ?array
     {
         $operation = $purpose === 'locacao' ? 4 : ($purpose === 'venda' ? 5 : null);
-        $operationWhere = $operation === null ? 'oi.codoperacao IN (4, 5)' : 'oi.codoperacao = :operation';
+        $operationWhere = $operation === null ? '' : 'AND oi.codoperacao = :operation';
         $sql = "
             SELECT DISTINCT ON (i.codimovel)
                 i.codimovel,
@@ -432,12 +431,11 @@ final class PropertyRepository
                 i.pontoreferencia,
                 i.complemento,
                 i.observacao,
-                oi.codempresa,
                 it.texto1,
                 it.texto2,
                 ed.descedificio AS edificio
             FROM imovel i
-            JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+            " . self::PURPOSES_JOIN . "
             JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
             JOIN bairro b ON b.codbairro = i.codbairro
             JOIN cidade c ON c.codcidade = b.codcidade
@@ -445,9 +443,9 @@ final class PropertyRepository
             LEFT JOIN edificio ed ON ed.codedificio = i.codedificio
             WHERE i.codimovel = :property
               AND i.exibesite = 'S'
-              AND {$operationWhere}
-              AND oi.datacancelamento IS NULL
-            ORDER BY i.codimovel, oi.datainicio DESC NULLS LAST
+              AND " . self::PURPOSE_ACTIVE . "
+              {$operationWhere}
+            ORDER BY i.codimovel
         ";
         $statement = $this->pdo->prepare($sql);
         $params = ['property' => $propertyId];
@@ -460,12 +458,12 @@ final class PropertyRepository
         }
 
         $operations = $this->pdo->prepare(
-            "SELECT DISTINCT codoperacao
-             FROM operacaoimovel
-             WHERE codimovel = :property
-               AND codoperacao IN (4, 5)
-               AND datacancelamento IS NULL
-             ORDER BY codoperacao"
+            "SELECT oi.codoperacao
+             FROM imovel i
+             " . self::PURPOSES_JOIN . "
+             WHERE i.codimovel = :property
+               AND " . self::PURPOSE_ACTIVE . "
+             ORDER BY oi.codoperacao"
         );
         $operations->execute(['property' => $propertyId]);
         $property['purposes'] = array_map(
@@ -501,17 +499,12 @@ final class PropertyRepository
                 CASE oi.codoperacao WHEN 4 THEN 'locacao' ELSE 'venda' END AS finalidade,
                 i.dataalteracao AS alterado_em
              FROM imovel i
-             JOIN operacaoimovel oi ON oi.codimovel = i.codimovel
+             " . self::PURPOSES_JOIN . "
              JOIN tipoimovel t ON t.codtipoimovel = i.codtipoimovel
              JOIN bairro b ON b.codbairro = i.codbairro
              JOIN cidade c ON c.codcidade = b.codcidade
              WHERE i.exibesite = 'S'
-               AND oi.codoperacao IN (4, 5)
-               AND oi.datacancelamento IS NULL
-               AND CASE oi.codoperacao
-                   WHEN 4 THEN COALESCE(i.valorlocacao, 0)
-                   ELSE COALESCE(i.valorvenda, 0)
-               END > 0
+               AND " . self::PURPOSE_ACTIVE . "
              ORDER BY i.codimovel"
         )->fetchAll();
     }
