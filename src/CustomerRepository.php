@@ -83,6 +83,39 @@ final class CustomerRepository
         return $boleto ?: null;
     }
 
+    /** Extratos dos contratos da Mundial (codempresa = 2) em que o cliente participa como proprietário. */
+    public function ownerStatements(int $customerCode): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.cod_extrato, e.cod_contrato, e.data_processo, e.data_geracao
+               FROM extrato e
+               JOIN cliente_contrato cc ON cc.cod_contrato = e.cod_contrato
+                AND cc.cod_cliente = :customer AND cc.como_participa = 1
+               JOIN contrato c ON c.codcontrato = cc.cod_contrato
+               JOIN empresaunidade eu ON eu.codempresaunidade = c.codempresaunidade AND eu.codempresa = 2
+              ORDER BY e.data_processo DESC NULLS LAST, e.cod_extrato DESC'
+        );
+        $statement->execute(['customer' => $customerCode]);
+        return $statement->fetchAll();
+    }
+
+    public function authorizedStatement(int $customerCode, int $statementCode): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT e.cod_extrato, e.cod_contrato
+               FROM extrato e
+               JOIN cliente_contrato cc ON cc.cod_contrato = e.cod_contrato
+                AND cc.cod_cliente = :customer AND cc.como_participa = 1
+               JOIN contrato c ON c.codcontrato = cc.cod_contrato
+               JOIN empresaunidade eu ON eu.codempresaunidade = c.codempresaunidade AND eu.codempresa = 2
+              WHERE e.cod_extrato = :statement
+              LIMIT 1'
+        );
+        $statement->execute(['customer' => $customerCode, 'statement' => $statementCode]);
+        $row = $statement->fetch();
+        return $row ?: null;
+    }
+
     public function updatePassword(int $id, string $password): void
     {
         $statement = $this->pdo->prepare(

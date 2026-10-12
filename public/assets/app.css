@@ -327,6 +327,7 @@ button:hover { background: var(--red-dark); }
 .customer-table td { padding: 17px 14px; border-bottom: 1px solid #ece9e3; font-size: .92rem; }
 .customer-table tr:last-child td { border-bottom: 0; }
 .digit-line { max-width: 330px; overflow-wrap: anywhere; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem !important; }
+.customer-unavailable { color: var(--muted); font-size: .8rem; white-space: nowrap; }
 .table-action { display: inline-block; padding: 9px 12px; white-space: nowrap; color: var(--white); background: var(--red); border-radius: 4px; font-size: .8rem; font-weight: 800; text-decoration: none; }
 .contract-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .contract-grid article { padding: 20px; display: grid; gap: 4px; background: #f7f6f2; border: 1px solid var(--line); border-radius: 6px; }
