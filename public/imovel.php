@@ -35,7 +35,7 @@ try {
         if ($property === null) {
             http_response_code(404);
         } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['contato'])) {
-            $canonicalPath = propertyPath($property, $purpose);
+            $canonicalPath = propertyPath($property, $purpose ?: $selectedPurpose);
             $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
             if ($requestPath !== $canonicalPath) {
                 header('Location: ' . $canonicalPath, true, 301);
@@ -104,7 +104,7 @@ function yes(mixed $value): bool
 
 $priceColumn = $purpose === 'locacao' ? 'valorlocacao' : 'valorvenda';
 $description = $property ? trim(implode("\n\n", array_filter([$property['texto1'], $property['texto2']]))) : '';
-$canonicalUrl = $property ? siteUrl(propertyPath($property, $purpose)) : siteUrl('/imovel');
+$canonicalUrl = $property ? siteUrl(propertyPath($property, $purpose ?: $selectedPurpose)) : siteUrl('/imovel');
 $metaDescription = $property
     ? sprintf('%s %s em %s, %s. Referência %d.', $property['tipo'], $purpose === '' ? 'para venda ou locação' : ($purpose === 'locacao' ? 'para alugar' : 'para comprar'), $property['bairro'], $property['cidade'], $property['codimovel'])
     : 'Consulte os imóveis disponíveis na Mundial Imóveis.';
