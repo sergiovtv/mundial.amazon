@@ -31,6 +31,11 @@ services:
       - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
       - /var/lib/mundial/media/CacheFotos:/var/www/html/public/cache
       - /var/lib/mundial/media/pdf_1020304050:/var/lib/mundial/documentos:ro
+      # XMLs dos portais enviados pelo ERP via FTP, publicados nos mesmos endereços da DigitalOcean
+      - /var/lib/mundial/media/imovelweb:/var/www/html/public/imovelweb:ro
+      - /var/lib/mundial/media/zapviva:/var/www/html/public/zapviva:ro
+      - /var/lib/mundial/media/casamineira:/var/www/html/public/casamineira:ro
+      - /var/lib/mundial/media/chavesnamao:/var/www/html/public/chavesnamao:ro
     networks:
       - mundial_backend
     healthcheck:
