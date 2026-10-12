@@ -116,6 +116,24 @@
         }
     });
 
+    function formatMoney(value) {
+        const digits = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+        return digits === '' ? '' : `R$ ${digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    }
+
+    document.querySelectorAll('[data-money-mask]').forEach(input => {
+        input.value = formatMoney(input.value.replace(/,\d*$/, ''));
+        input.addEventListener('input', () => {
+            const digitsAfterCaret = input.value.slice(input.selectionStart ?? input.value.length).replace(/\D/g, '').length;
+            input.value = formatMoney(input.value);
+            let caret = input.value.length;
+            for (let seen = 0; caret > 0 && seen < digitsAfterCaret; caret--) {
+                if (/\d/.test(input.value[caret - 1])) seen++;
+            }
+            input.setSelectionRange(caret, caret);
+        });
+    });
+
     document.addEventListener('click', event => {
         const button = event.target.closest('.photo-reaction');
         if (button) react(button);
