@@ -60,7 +60,7 @@ customerHeader('Área do Cliente');
         <form method="post" class="customer-form">
             <input type="hidden" name="csrf" value="<?= e(csrfToken()) ?>">
             <label>CPF ou CNPJ
-                <input name="cpf" inputmode="numeric" autocomplete="username" required maxlength="18" value="<?= e($_POST['cpf'] ?? '') ?>" placeholder="000.000.000-00">
+                <input name="cpf" data-mask="cpf-cnpj" inputmode="numeric" autocomplete="username" required maxlength="18" value="<?= e($_POST['cpf'] ?? '') ?>" placeholder="CPF ou CNPJ">
             </label>
             <label>Senha
                 <input type="password" name="senha" autocomplete="current-password" required maxlength="72">

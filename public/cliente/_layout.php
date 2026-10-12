@@ -14,6 +14,7 @@ function customerHeader(string $title, ?array $customer = null): void
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/app.css">
+    <script src="/assets/cpf-cnpj-mask.js" defer></script>
 </head>
 <body class="customer-body">
 <header class="site-header customer-header">
