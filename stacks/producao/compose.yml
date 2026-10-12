@@ -31,6 +31,9 @@ services:
       - traefik.http.routers.mundial.rule=Host(`mundialimoveis.com.br`) || Host(`www.mundialimoveis.com.br`)
       - traefik.http.routers.mundial.entrypoints=websecure
       - traefik.http.routers.mundial.tls=true
+      - traefik.http.routers.mundial.tls.certresolver=letsencrypt
+      - traefik.http.routers.mundial.tls.domains[0].main=mundialimoveis.com.br
+      - traefik.http.routers.mundial.tls.domains[0].sans=www.mundialimoveis.com.br
       - traefik.http.routers.mundial.middlewares=mundial-www
       - traefik.http.middlewares.mundial-www.redirectregex.regex=^https://www\.mundialimoveis\.com\.br/(.*)
       - traefik.http.middlewares.mundial-www.redirectregex.replacement=https://mundialimoveis.com.br/$${1}
