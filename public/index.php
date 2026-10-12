@@ -101,7 +101,8 @@ function visualPropertyPhotoPath(array $photo): string
 
 $heroImage = null;
 if (!empty($heroPhoto)) {
-    $heroImage = visualPhotoUrl($heroPhoto);
+    // Sem marca d'água; o parâmetro muda quando o imóvel do fundo muda.
+    $heroImage = '/hero.php?v=' . rawurlencode((int) $heroPhoto['codimovel'] . '-' . $heroPhoto['nome_imagem']);
 } elseif ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
     $heroImage = visualPhotoUrl($visualGalleries[0]['photos'][0]);
 } elseif (isset($result['items'][0])) {
