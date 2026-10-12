@@ -30,7 +30,7 @@ services:
     volumes:
       - /var/lib/mundial/media/_fotos_1020304050:/var/www/html/public/fotos:ro
       - /var/lib/mundial/media/CacheFotos:/var/www/html/public/cache
-      - /var/lib/mundial/documentos:/var/lib/mundial/documentos:ro
+      - /var/lib/mundial/media/pdf_1020304050:/var/lib/mundial/documentos:ro
     networks:
       - mundial_backend
     healthcheck:

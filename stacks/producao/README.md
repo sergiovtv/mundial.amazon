@@ -16,7 +16,9 @@ Não copie credenciais para este diretório nem versione arquivos `.env`.
 
 Antes de publicar a Área do Cliente:
 
-1. Migre os PDFs para `/var/lib/mundial/documentos/boletos`, sem montar nenhum diretório da DigitalOcean.
+1. Os PDFs ficam em `/var/lib/mundial/media/pdf_1020304050` (`boletos`, `extratos` e
+   `informe_rendimentos`), enviados pelo ERP via FTP e montados somente leitura em
+   `/var/lib/mundial/documentos` no container. Não monte nenhum diretório da DigitalOcean.
 2. Cadastre `BOLETO_API_KEY` na tabela `parametro` do banco `imobi`.
 3. Confirme que o usuário da aplicação possui acesso de dados aos bancos `imobi` e `cliente`.
 4. Os parâmetros `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` e `BREVO_SENDER_NAME` são lidos da tabela `parametro` do banco `imobi`.
