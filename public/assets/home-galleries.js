@@ -134,6 +134,30 @@
         });
     });
 
+    document.querySelectorAll('[data-neighborhood-target]').forEach(citySelect => {
+        const neighborhoodSelect = document.querySelector(citySelect.dataset.neighborhoodTarget);
+        if (!neighborhoodSelect) return;
+        let request = 0;
+
+        citySelect.addEventListener('change', async () => {
+            const current = ++request;
+            const placeholder = neighborhoodSelect.options[0];
+            neighborhoodSelect.replaceChildren(placeholder);
+            placeholder.selected = true;
+            neighborhoodSelect.disabled = true;
+            try {
+                const response = await fetch(`/api/bairros.php?cidade=${encodeURIComponent(citySelect.value)}`);
+                const neighborhoods = response.ok ? await response.json() : [];
+                if (current !== request) return;
+                neighborhoods.forEach(neighborhood => neighborhoodSelect.add(new Option(neighborhood.label, neighborhood.id)));
+            } catch (_) {
+                // Mantém somente "Todos os bairros" se a lista não puder ser carregada.
+            } finally {
+                if (current === request) neighborhoodSelect.disabled = false;
+            }
+        });
+    });
+
     document.addEventListener('click', event => {
         const button = event.target.closest('.photo-reaction');
         if (button) react(button);

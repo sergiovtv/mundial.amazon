@@ -29,8 +29,13 @@ try {
     $repository = new PropertyRepository(Database::connect());
     $whatsappPhone = $repository->siteParameter('var_whatsapp');
     $options = $repository->options();
+    $searchFilters = $filters;
+    if (!array_key_exists('cidade', $_GET)) {
+        $filters['cidade'] = $repository->siteParameter('var_cidade_padrao');
+        if ($hasFilters) $searchFilters = $filters;
+    }
     $neighborhoods = $repository->neighborhoods(ctype_digit((string) $filters['cidade']) ? (int) $filters['cidade'] : null);
-    $result = $repository->search($filters, $page);
+    $result = $repository->search($searchFilters, $page);
     $visualGalleries = $hasFilters ? [] : $repository->visualGalleries(8, $photoVisitorHash);
 } catch (Throwable $exception) {
     $error = env('APP_DEBUG', 'false') === 'true' ? $exception->getMessage() : 'Não foi possível consultar os imóveis agora.';
@@ -197,7 +202,7 @@ if (!$hasFilters) {
                             <form class="home-quick-search" method="get">
                                 <label><span>Operação</span><select name="finalidade"><option value="venda">Comprar</option><option value="locacao">Alugar</option></select></label>
                                 <label><span>Tipo</span><select name="tipo"><option value="">Todos os tipos</option><?php foreach ($options['types'] as $type): ?><option value="<?= e($type['id']) ?>"><?= e($type['label']) ?></option><?php endforeach; ?></select></label>
-                                <label><span>Local</span><select name="cidade"><option value="">Todas as cidades</option><?php foreach ($options['cities'] as $city): ?><option value="<?= e($city['id']) ?>"><?= e($city['label']) ?></option><?php endforeach; ?></select></label>
+                                <label><span>Local</span><select name="cidade"><option value="">Todas as cidades</option><?php foreach ($options['cities'] as $city): ?><option value="<?= e($city['id']) ?>" <?= (string) $filters['cidade'] === (string) $city['id'] ? 'selected' : '' ?>><?= e($city['label']) ?></option><?php endforeach; ?></select></label>
                                 <button type="submit">Buscar agora <span aria-hidden="true">→</span></button>
                             </form>
                             <button class="home-quick-more" type="button" data-home-mode="search">Mais filtros</button>
@@ -238,7 +243,7 @@ if (!$hasFilters) {
                 </select>
             </label>
             <label>Cidade
-                <select name="cidade">
+                <select name="cidade" data-neighborhood-target="#filtro-bairro">
                     <option value="">Todas as cidades</option>
                     <?php foreach ($options['cities'] as $city): ?>
                         <option value="<?= e($city['id']) ?>" <?= (string) $filters['cidade'] === (string) $city['id'] ? 'selected' : '' ?>><?= e($city['label']) ?></option>
@@ -246,7 +251,7 @@ if (!$hasFilters) {
                 </select>
             </label>
             <label>Bairro
-                <select name="bairro">
+                <select name="bairro" id="filtro-bairro">
                     <option value="">Todos os bairros</option>
                     <?php foreach ($neighborhoods as $neighborhood): ?>
                         <option value="<?= e($neighborhood['id']) ?>" <?= (string) $filters['bairro'] === (string) $neighborhood['id'] ? 'selected' : '' ?>><?= e($neighborhood['label']) ?></option>
