@@ -10,6 +10,7 @@ require_once __DIR__ . '/BrevoMailer.php';
 require_once __DIR__ . '/BoletoService.php';
 require_once __DIR__ . '/CustomerDocuments.php';
 require_once __DIR__ . '/PortalLeadReceiver.php';
+require_once __DIR__ . '/Tracking.php';
 require_once __DIR__ . '/WatermarkedImageCache.php';
 
 function env(string $name, ?string $default = null): string

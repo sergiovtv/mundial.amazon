@@ -127,6 +127,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?= trackingHead() ?>
     <title><?= $property ? e($property['tipo'] . ' em ' . $property['bairro']) : 'Imóvel não encontrado' ?> | Mundial Imóveis</title>
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -143,6 +144,7 @@ if ($socialImage !== null && !preg_match('#^https?://#i', $socialImage)) {
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="site-v2 detail-v2">
+<?= trackingBody() ?>
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/logo.svg" alt="Mundial Imóveis">

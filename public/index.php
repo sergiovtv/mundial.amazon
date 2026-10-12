@@ -122,6 +122,7 @@ if (!$hasFilters) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?= trackingHead() ?>
     <title>Encontre seu imóvel | Mundial Imóveis</title>
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -142,6 +143,7 @@ if (!$hasFilters) {
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="site-v2 <?= $hasFilters ? 'listing-page' : 'home-page' ?>">
+<?= trackingBody() ?>
 <header class="site-header">
     <a class="brand" href="/" aria-label="Mundial Imóveis">
         <img src="/img/site/logos/<?= $hasFilters ? 'logo.svg' : 'logo-claro.svg' ?>" alt="Mundial Imóveis">
