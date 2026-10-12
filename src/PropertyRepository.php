@@ -104,7 +104,7 @@ final class PropertyRepository
                     SELECT f.nome_imagem
                     FROM fotoimovel f
                     WHERE f.codimovel = i.codimovel
-                      AND f.situacao_cadastro = 'A'
+                      AND f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                     ORDER BY f.ordemexibicao NULLS LAST, f.codfotoimovel
                     LIMIT 1
                 ) AS foto_imovel,
@@ -112,7 +112,7 @@ final class PropertyRepository
                     SELECT f.nome_imagem
                     FROM fotoedificio f
                     WHERE f.codedificio = i.codedificio
-                      AND f.situacao_cadastro = 'A'
+                      AND f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                     ORDER BY f.ordemexibicao NULLS LAST, f.codfotoedificio
                     LIMIT 1
                 ) AS foto_edificio
@@ -225,7 +225,7 @@ final class PropertyRepository
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
                 {$propertyScoreJoin}
-                WHERE f.situacao_cadastro = 'A'
+                WHERE f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
                   AND oi.codoperacao IN (4, 5)
@@ -259,7 +259,7 @@ final class PropertyRepository
                 JOIN bairro b ON b.codbairro = i.codbairro
                 JOIN cidade c ON c.codcidade = b.codcidade
                 {$buildingScoreJoin}
-                WHERE f.situacao_cadastro = 'A'
+                WHERE f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
                   AND NULLIF(TRIM(f.nome_imagem), '') IS NOT NULL
                   AND i.exibesite = 'S'
                   AND oi.codoperacao IN (4, 5)
@@ -365,7 +365,7 @@ final class PropertyRepository
         $idColumn = $source === 'imovel' ? 'codfotoimovel' : 'codfotoedificio';
         $exists = $this->pdo->prepare(
             "SELECT 1 FROM {$table}
-             WHERE {$idColumn} = :photo AND situacao_cadastro = 'A'
+             WHERE {$idColumn} = :photo AND situacao_cadastro <> 'E' AND coduserdesativacao IS NULL
              LIMIT 1"
         );
         $exists->execute(['photo' => $photoId]);
@@ -582,7 +582,8 @@ final class PropertyRepository
                     'imovel' AS source
              FROM fotoimovel f
              LEFT JOIN tipofoto tf ON tf.codtipofoto = f.codtipofoto
-             WHERE f.codimovel = :property AND f.situacao_cadastro = 'A'
+             WHERE f.codimovel = :property AND f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
+               AND COALESCE(tf.exibesite, 'S') = 'S'
              ORDER BY f.ordemexibicao NULLS LAST, f.codfotoimovel"
         );
         $statement->execute(['property' => $propertyId]);
@@ -598,7 +599,8 @@ final class PropertyRepository
                     'edificio' AS source
              FROM fotoedificio f
              LEFT JOIN tipofoto tf ON tf.codtipofoto = f.codtipofoto
-             WHERE f.codedificio = :building AND f.situacao_cadastro = 'A'
+             WHERE f.codedificio = :building AND f.situacao_cadastro <> 'E' AND f.coduserdesativacao IS NULL
+               AND COALESCE(tf.exibesite, 'S') = 'S'
              ORDER BY f.ordemexibicao NULLS LAST, f.codfotoedificio"
         );
         $statement->execute(['building' => $buildingId]);
