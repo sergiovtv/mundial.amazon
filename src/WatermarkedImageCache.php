@@ -9,7 +9,8 @@ final class WatermarkedImageCache
     public function __construct(
         private readonly string $originalRoot,
         private readonly string $cacheRoot,
-        private readonly string $watermarkFile,
+        private readonly string $cornerWatermarkFile,
+        private readonly string $centerWatermarkFile,
     ) {
     }
 
@@ -120,36 +121,21 @@ final class WatermarkedImageCache
         }
 
         $sourceBytes = file_get_contents($source);
-        $watermarkBytes = file_get_contents($this->watermarkFile);
+        $cornerWatermarkBytes = file_get_contents($this->cornerWatermarkFile);
+        $centerWatermarkBytes = file_get_contents($this->centerWatermarkFile);
         $image = $sourceBytes === false ? false : imagecreatefromstring($sourceBytes);
-        $watermark = $watermarkBytes === false ? false : imagecreatefromstring($watermarkBytes);
-        if ($image === false || $watermark === false) {
-            throw new RuntimeException('Não foi possível abrir a foto ou a marca d’água.');
+        $cornerWatermark = $cornerWatermarkBytes === false ? false : imagecreatefromstring($cornerWatermarkBytes);
+        $centerWatermark = $centerWatermarkBytes === false ? false : imagecreatefromstring($centerWatermarkBytes);
+        if ($image === false || $cornerWatermark === false || $centerWatermark === false) {
+            throw new RuntimeException('Não foi possível abrir a foto ou as marcas d’água.');
         }
 
         try {
             $image = $this->orientJpeg($image, $source, (string) $info['mime']);
             $width = imagesx($image);
             $height = imagesy($image);
-            $markWidth = max(70, (int) round($width * 0.18));
-            $markWidth = min($markWidth, (int) round($width * 0.28));
-            $markHeight = max(1, (int) round(imagesy($watermark) * ($markWidth / imagesx($watermark))));
-            if ($markHeight > $height * 0.35) {
-                $markHeight = (int) round($height * 0.35);
-                $markWidth = max(1, (int) round(imagesx($watermark) * ($markHeight / imagesy($watermark))));
-            }
-
-            $scaled = imagecreatetruecolor($markWidth, $markHeight);
-            imagealphablending($scaled, false);
-            imagesavealpha($scaled, true);
-            $transparent = imagecolorallocatealpha($scaled, 0, 0, 0, 127);
-            imagefilledrectangle($scaled, 0, 0, $markWidth, $markHeight, $transparent);
-            imagecopyresampled($scaled, $watermark, 0, 0, 0, 0, $markWidth, $markHeight, imagesx($watermark), imagesy($watermark));
-            imagealphablending($image, true);
-
-            $padding = max(12, (int) round(min($width, $height) * 0.025));
-            imagecopy($image, $scaled, $width - $markWidth - $padding, $height - $markHeight - $padding, 0, 0, $markWidth, $markHeight);
-            imagedestroy($scaled);
+            $this->overlayWatermark($image, $centerWatermark, 0.30, 0.40, 'center');
+            $this->overlayWatermark($image, $cornerWatermark, 0.10, 0.90, 'bottom-right');
 
             $temporary = $cached . '.tmp-' . bin2hex(random_bytes(6));
             $saved = match ((string) $info['mime']) {
@@ -166,8 +152,63 @@ final class WatermarkedImageCache
             chmod($cached, 0664);
         } finally {
             imagedestroy($image);
-            imagedestroy($watermark);
+            imagedestroy($cornerWatermark);
+            imagedestroy($centerWatermark);
         }
+    }
+
+    private function overlayWatermark(
+        GdImage $image,
+        GdImage $watermark,
+        float $widthRatio,
+        float $opacity,
+        string $position,
+    ): void {
+        $imageWidth = imagesx($image);
+        $imageHeight = imagesy($image);
+        $markWidth = max(48, (int) round($imageWidth * $widthRatio));
+        $markHeight = max(1, (int) round(imagesy($watermark) * ($markWidth / imagesx($watermark))));
+
+        $maximumHeightRatio = $position === 'center' ? 0.38 : 0.24;
+        if ($markHeight > $imageHeight * $maximumHeightRatio) {
+            $markHeight = max(1, (int) round($imageHeight * $maximumHeightRatio));
+            $markWidth = max(1, (int) round(imagesx($watermark) * ($markHeight / imagesy($watermark))));
+        }
+
+        $scaled = imagecreatetruecolor($markWidth, $markHeight);
+        imagealphablending($scaled, false);
+        imagesavealpha($scaled, true);
+        $transparent = imagecolorallocatealpha($scaled, 0, 0, 0, 127);
+        imagefilledrectangle($scaled, 0, 0, $markWidth, $markHeight, $transparent);
+        imagecopyresampled(
+            $scaled,
+            $watermark,
+            0,
+            0,
+            0,
+            0,
+            $markWidth,
+            $markHeight,
+            imagesx($watermark),
+            imagesy($watermark),
+        );
+
+        if ($opacity < 1) {
+            imagefilter($scaled, IMG_FILTER_COLORIZE, 0, 0, 0, (int) round(127 * (1 - $opacity)));
+        }
+
+        if ($position === 'center') {
+            $destinationX = (int) round(($imageWidth - $markWidth) / 2);
+            $destinationY = (int) round(($imageHeight - $markHeight) / 2);
+        } else {
+            $padding = max(12, (int) round(min($imageWidth, $imageHeight) * 0.025));
+            $destinationX = $imageWidth - $markWidth - $padding;
+            $destinationY = $imageHeight - $markHeight - $padding;
+        }
+
+        imagealphablending($image, true);
+        imagecopy($image, $scaled, $destinationX, $destinationY, 0, 0, $markWidth, $markHeight);
+        imagedestroy($scaled);
     }
 
     private function orientJpeg(GdImage $image, string $source, string $mime): GdImage

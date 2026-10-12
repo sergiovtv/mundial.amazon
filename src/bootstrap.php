@@ -104,6 +104,7 @@ function anonymousPhotoVisitorHash(): string
 
 function cachedPhotoUrl(string $relativePath): string
 {
+    $cacheVersion = trim(env('PHOTO_CACHE_VERSION', 'wm3'), '/');
     $segments = array_values(array_filter(
         explode('/', str_replace('\\', '/', $relativePath)),
         static fn (string $segment): bool => $segment !== ''
@@ -114,7 +115,7 @@ function cachedPhotoUrl(string $relativePath): string
         return rtrim(env('MEDIA_BASE_URL', '/fotos'), '/') . '/' . implode('/', array_map('rawurlencode', $segments));
     }
 
-    return '/cache/' . implode('/', array_map('rawurlencode', $segments));
+    return '/cache/' . rawurlencode($cacheVersion) . '/' . implode('/', array_map('rawurlencode', $segments));
 }
 
 function formatCpfCnpj(string $value): ?string

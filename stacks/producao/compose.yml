@@ -13,7 +13,9 @@ services:
       MEDIA_BASE_URL: /fotos
       PHOTO_ORIGINAL_ROOT: /var/www/html/public/fotos
       PHOTO_CACHE_ROOT: /var/www/html/public/cache
+      PHOTO_CACHE_VERSION: wm3
       PHOTO_WATERMARK_FILE: /var/www/html/public/img/watermark-mundial.png
+      PHOTO_CENTER_WATERMARK_FILE: /var/www/html/public/img/marca_dagua_150_borda.gif
       APP_URL: ${APP_URL:-https://mundialimoveis.com.br}
       DB_HOST: postgres
       DB_PORT: 5432
