@@ -22,7 +22,7 @@ if ($filters['codigo'] !== '' && ctype_digit((string) $filters['codigo']) && (in
 $page = max(1, (int) ($_GET['pagina'] ?? 1));
 $error = null;
 $whatsappPhone = '';
-$hasFilters = array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' ? $value !== '' : $value !== 'venda', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
+$hasFilters = isset($_GET['finalidade']) || array_filter($filters, static fn ($value, $key) => $key !== 'finalidade' && $value !== '', ARRAY_FILTER_USE_BOTH) !== [] || $page > 1;
 $photoVisitorHash = $hasFilters ? null : anonymousPhotoVisitorHash();
 
 try {
