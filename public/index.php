@@ -32,6 +32,7 @@ try {
     $neighborhoods = $repository->neighborhoods(ctype_digit((string) $filters['cidade']) ? (int) $filters['cidade'] : null);
     $result = $repository->search($filters, $page);
     $visualGalleries = $hasFilters ? [] : $repository->visualGalleries(8, $photoVisitorHash);
+    $heroPhoto = $hasFilters ? null : $repository->heroPhoto();
 } catch (Throwable $exception) {
     $error = env('APP_DEBUG', 'false') === 'true' ? $exception->getMessage() : 'Não foi possível consultar os imóveis agora.';
     $options = ['types' => [], 'cities' => []];
@@ -99,7 +100,9 @@ function visualPropertyPhotoPath(array $photo): string
 }
 
 $heroImage = null;
-if ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
+if (!empty($heroPhoto)) {
+    $heroImage = visualPhotoUrl($heroPhoto);
+} elseif ($visualGalleries !== [] && isset($visualGalleries[0]['photos'][0])) {
     $heroImage = visualPhotoUrl($visualGalleries[0]['photos'][0]);
 } elseif (isset($result['items'][0])) {
     $heroImage = propertyPhotoUrl($result['items'][0]);
