@@ -25,6 +25,7 @@ services:
       BOLETO_API_BASE_URL: ${BOLETO_API_BASE_URL:-http://177.200.69.64:9090/sistema/api/site_api.php}
       BOLETO_API_COMPANY: ${BOLETO_API_COMPANY:-sm}
       BOLETO_API_ROUTINE: ${BOLETO_API_ROUTINE:-pdf_boleto_sicredi}
+      ZAP_LEAD_KEY: ${ZAP_LEAD_KEY:-}
     ports:
       - "80:80"
     volumes:
